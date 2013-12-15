@@ -46,7 +46,7 @@ public class RowDataPacketSorter {
 		}
 
 		array = result;
-		mergeR(0, result.length - 1);
+		mergeR(0, result.length - 1); 
 
 		return array;
 	}

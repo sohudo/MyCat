@@ -1,7 +1,7 @@
 1 check Java Runtime Env is OK 
 2 create datbase db1,db2,db3 in local mysql server and make sure mysql password of root is 123456
 3 goto bin directory and run startup.bat
-4 in command line ,run mysql client command  mysql -utest -ptest -P8066 -DTESTDB
+4 in command line ,run mysql client command  mysql -utest -ptest -hlocalhost -P8066 -DTESTDB
 5 execute sql in mysql client
 
 6 create company : create table company(id int not null primary key,name varchar(100));

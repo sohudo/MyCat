@@ -26,6 +26,7 @@ import org.opencloudb.server.response.SelectUser;
 import org.opencloudb.server.response.SelectVersion;
 import org.opencloudb.server.response.SelectVersionComment;
 import org.opencloudb.server.response.SessionIncrement;
+import org.opencloudb.server.response.SessionIsolation;
 
 /**
  * @author mycat
@@ -50,7 +51,9 @@ public final class SelectHandler {
 		case ServerParseSelect.SESSION_INCREMENT:
 			SessionIncrement.response(c);
 			break;
-
+		case ServerParseSelect.SESSION_ISOLATION:
+			SessionIsolation.response(c);
+			break;
 		case ServerParseSelect.LAST_INSERT_ID:
 			// offset = ParseUtil.move(stmt, 0, "select".length());
 			loop: for (; offset < stmt.length(); ++offset) {

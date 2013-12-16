@@ -31,6 +31,7 @@ public final class ServerParseSelect {
 	public static final int IDENTITY = 5;
 	public static final int VERSION = 6;
 	public static final int SESSION_INCREMENT = 7;
+	public static final int SESSION_ISOLATION = 8;
 
 	private static final char[] _VERSION_COMMENT = "VERSION_COMMENT"
 			.toCharArray();
@@ -77,10 +78,13 @@ public final class ServerParseSelect {
 	 * @param offset
 	 * @return
 	 */
-	private static int sessionIncrementCheck(String stmt, int offset) {
+	private static int sessionVarCheck(String stmt, int offset) {
 		if (stmt.substring(offset).toLowerCase()
 				.startsWith("session.auto_increment_increment")) {
 			return SESSION_INCREMENT;
+		} else if (stmt.substring(offset).toLowerCase()
+				.startsWith("session.tx_isolation")) {
+			return SESSION_ISOLATION;
 		} else {
 			return OTHER;
 		}
@@ -421,7 +425,7 @@ public final class ServerParseSelect {
 					return identityCheck(stmt, offset);
 				case 's':
 				case 'S':
-					return sessionIncrementCheck(stmt, offset);
+					return sessionVarCheck(stmt, offset);
 				default:
 					return OTHER;
 				}

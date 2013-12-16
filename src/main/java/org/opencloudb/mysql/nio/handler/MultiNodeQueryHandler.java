@@ -322,7 +322,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				eof[3] = ++packetId;
 				source.write(source.writeToBuffer(eof, buffer));
 			} finally {
-				dataMergeSvr.clear();
+				if (dataMergeSvr != null) {
+					dataMergeSvr.clear();
+				}
 				lock.unlock();
 			}
 		}

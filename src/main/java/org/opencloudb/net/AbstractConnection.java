@@ -40,6 +40,7 @@ public abstract class AbstractConnection implements NIOConnection {
 
     protected final SocketChannel channel;
     protected NIOProcessor processor;
+    protected NIOHandler handler;
     protected SelectionKey processKey;
     protected final ReentrantLock keyLock;
     protected int packetHeaderSize;
@@ -71,7 +72,7 @@ public abstract class AbstractConnection implements NIOConnection {
     public SocketChannel getChannel() {
         return channel;
     }
-
+   
     public int getPacketHeaderSize() {
         return packetHeaderSize;
     }
@@ -141,7 +142,28 @@ public abstract class AbstractConnection implements NIOConnection {
     public void recycle(ByteBuffer buffer) {
         processor.getBufferPool().recycle(buffer);
     }
+    
+    public boolean isWriteQueueFull()
+    {
+    	return this.writeQueue.isFull();
+    }
+    public void writeQueueAvailable()
+    {
+    	//System.out.println("writeQueueAvailable");
+    }
+    
+    public void setHandler(NIOHandler handler) {
+        this.handler = handler;
+    }
 
+    @Override
+    public void handle(byte[] data) {
+        try {
+            handler.handle(data);
+        } catch (Throwable e) {
+            error(ErrorCode.ERR_HANDLE_DATA, e);
+        }
+    }
     @Override
     public void register(Selector selector) throws IOException {
         try {
@@ -241,6 +263,7 @@ public abstract class AbstractConnection implements NIOConnection {
 
     @Override
     public void writeByQueue() throws IOException {
+    	//System.out.println("writeByQueue ");
         if (isClosed.get()) {
             return;
         }
@@ -252,6 +275,10 @@ public abstract class AbstractConnection implements NIOConnection {
             // 2.write0()返回false。
             if ((processKey.interestOps() & SelectionKey.OP_WRITE) == 0 && !write0()) {
                 enableWrite();
+            }else
+            {
+            	//notify handle can put data to queue
+                this.writeQueueAvailable();
             }
         } finally {
             lock.unlock();
@@ -260,6 +287,7 @@ public abstract class AbstractConnection implements NIOConnection {
 
     @Override
     public void writeByEvent() throws IOException {
+    	System.out.println("writeByEvent ");
         if (isClosed.get()) {
             return;
         }
@@ -271,6 +299,7 @@ public abstract class AbstractConnection implements NIOConnection {
             // 2.发送队列的buffer为空。
             if (write0() && writeQueue.size() == 0) {
                 disableWrite();
+                
             }
         } finally {
             lock.unlock();

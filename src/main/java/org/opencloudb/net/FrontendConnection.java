@@ -54,7 +54,7 @@ public abstract class FrontendConnection extends AbstractConnection {
     protected byte[] seed;
     protected String user;
     protected String schema;
-    protected NIOHandler handler;
+ 
     protected FrontendPrivileges privileges;
     protected FrontendQueryHandler queryHandler;
     protected FrontendPrepareHandler prepareHandler;
@@ -124,10 +124,7 @@ public abstract class FrontendConnection extends AbstractConnection {
         processor.addFrontend(this);
     }
 
-    public void setHandler(NIOHandler handler) {
-        this.handler = handler;
-    }
-
+  
     public void setQueryHandler(FrontendQueryHandler queryHandler) {
         this.queryHandler = queryHandler;
     }

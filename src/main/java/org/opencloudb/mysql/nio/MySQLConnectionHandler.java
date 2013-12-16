@@ -33,7 +33,8 @@ import org.opencloudb.net.mysql.OkPacket;
  * @author mycat
  */
 public class MySQLConnectionHandler extends BackendAsyncHandler {
-	  private static final Logger logger = Logger.getLogger(MySQLConnectionHandler.class);
+	private static final Logger logger = Logger
+			.getLogger(MySQLConnectionHandler.class);
 	private static final int RESULT_STATUS_INIT = 0;
 	private static final int RESULT_STATUS_HEADER = 1;
 	private static final int RESULT_STATUS_FIELD_EOF = 2;
@@ -57,12 +58,13 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 		// connError = e;
 		// handleQueue();
 		dataQueue.clear();
-        if(responseHandler!=null)
-        {
-        	System.out.println(" responseHandler connectionError "+responseHandler.getClass().getName());
-        	responseHandler.connectionError(e, source);
-        }
-		
+		if (responseHandler != null) {
+			System.out.println(" responseHandler connectionError "
+					+ responseHandler.getClass().getName());
+			e.printStackTrace();
+			responseHandler.connectionError(e, source);
+		}
+
 	}
 
 	public MySQLConnection getSource() {
@@ -138,17 +140,15 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 
 	@Override
 	protected void handleDataError(Throwable t) {
-		logger.warn("caught Data process err:",t);
+		logger.warn("caught Data process err:", t);
 		dataQueue.clear();
 		resultStatus = RESULT_STATUS_INIT;
-		if(responseHandler!=null)
-		{
+		if (responseHandler != null) {
 			responseHandler.connectionError(t, source);
-		}else
-		{
+		} else {
 			t.printStackTrace();
 		}
-		
+
 	}
 
 	/**

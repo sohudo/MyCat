@@ -54,4 +54,10 @@ public class DoNothingHandler implements ResponseHandler{
 		
 	}
 
+	@Override
+	public void writeQueueAvailable() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

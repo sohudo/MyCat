@@ -306,4 +306,10 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 		}
 	}
 
+	@Override
+	public void writeQueueAvailable() {
+	
+		
+	}
+
 }

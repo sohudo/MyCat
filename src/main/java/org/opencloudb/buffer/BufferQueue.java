@@ -56,6 +56,10 @@ public final class BufferQueue {
         }
     }
 
+    public boolean isFull()
+    {
+    	return count>=items.length;
+    }
     public void put(ByteBuffer buffer) throws InterruptedException {
         final ByteBuffer[] items = this.items;
         final ReentrantLock lock = this.lock;

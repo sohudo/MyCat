@@ -1,1 +1,0 @@
-java -DMYCAT_HOME='..' -cp "..\conf;..\lib\*" org.opencloudb.MycatStartup

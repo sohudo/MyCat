@@ -184,6 +184,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	public void errorResponse(byte[] data, MySQLConnection conn) {
 		ErrorPacket err = new ErrorPacket();
 		err.read(data);
+		LOGGER.warn("error response from " + conn + " err "
+				+ new String(err.message));
 		backendConnError(conn, err);
 	}
 
@@ -388,12 +390,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			} else {
 				row[3] = ++packetId;
 				buffer = session.getSource().writeToBuffer(row, buffer);
-
 			}
 
 		} finally {
 			lock.unlock();
 		}
+	}
+
+	@Override
+	public void writeQueueAvailable() {
+		// TODO Auto-generated method stub
+
 	}
 
 }

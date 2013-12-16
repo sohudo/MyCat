@@ -135,4 +135,10 @@ public class RollbackNodeHandler extends MultiNodeHandler {
                 .append(session.getSource()).append(": field's eof").toString());
     }
 
+	@Override
+	public void writeQueueAvailable() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

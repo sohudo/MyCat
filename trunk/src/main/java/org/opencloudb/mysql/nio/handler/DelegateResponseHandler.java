@@ -70,4 +70,10 @@ public class DelegateResponseHandler implements ResponseHandler {
         target.rowEofResponse(eof, conn);
     }
 
+	@Override
+	public void writeQueueAvailable() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

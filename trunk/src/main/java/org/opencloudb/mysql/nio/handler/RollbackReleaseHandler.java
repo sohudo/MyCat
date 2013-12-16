@@ -68,4 +68,10 @@ public class RollbackReleaseHandler implements ResponseHandler {
         conn.close();
     }
 
+	@Override
+	public void writeQueueAvailable() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

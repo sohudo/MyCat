@@ -61,5 +61,10 @@ public interface ResponseHandler {
      * 收到行数据包结束的响应处理
      */
     void rowEofResponse(byte[] eof, MySQLConnection conn);
-
+    
+    /**
+     * 写队列为空，可以写数据了
+     * 
+     */
+    void writeQueueAvailable();
 }

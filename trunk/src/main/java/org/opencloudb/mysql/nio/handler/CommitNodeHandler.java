@@ -148,4 +148,10 @@ public class CommitNodeHandler extends MultiNodeHandler {
         logger.warn(new StringBuilder().append("unexpected packet for ").append(conn).append(" bound by ")
                 .append(session.getSource()).append(": row data packet").toString());
     }
+
+	@Override
+	public void writeQueueAvailable() {
+		// TODO Auto-generated method stub
+		
+	}
 }

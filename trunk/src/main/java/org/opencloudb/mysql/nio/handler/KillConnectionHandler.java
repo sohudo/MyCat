@@ -113,4 +113,10 @@ public class KillConnectionHandler implements ResponseHandler {
     public void rowResponse(byte[] row, MySQLConnection conn) {
     }
 
+	@Override
+	public void writeQueueAvailable() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

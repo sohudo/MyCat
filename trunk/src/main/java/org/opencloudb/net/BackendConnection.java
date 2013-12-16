@@ -21,7 +21,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
-import org.opencloudb.config.ErrorCode;
 import org.opencloudb.util.TimeUtil;
 
 /**
@@ -35,7 +34,6 @@ public abstract class BackendConnection extends AbstractConnection {
     protected int localPort;
     protected long idleTimeout;
     protected NIOConnector connector;
-    protected NIOHandler handler;
     protected boolean isFinishConnect;
 
     public BackendConnection(SocketChannel channel) {
@@ -112,18 +110,7 @@ public abstract class BackendConnection extends AbstractConnection {
         processor.addBackend(this);
     }
 
-    public void setHandler(NIOHandler handler) {
-        this.handler = handler;
-    }
-
-    @Override
-    public void handle(byte[] data) {
-        try {
-            handler.handle(data);
-        } catch (Throwable e) {
-            error(ErrorCode.ERR_HANDLE_DATA, e);
-        }
-    }
+   
 
     @Override
     protected void idleCheck() {

@@ -43,6 +43,17 @@ public interface NIOConnection {
      * 写出一块缓存数据
      */
     void write(ByteBuffer buffer);
+    
+    /**
+     * 通知Queue缓存为空，可以继续写数据了
+     * 
+     */
+    void writeQueueAvailable();
+    
+    /**
+     * if write buffer full
+     */
+    boolean isWriteQueueFull();
 
     /**
      * 基于处理器队列的方式写数据

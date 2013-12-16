@@ -124,6 +124,7 @@ public class MySQLConnection extends BackendConnection {
 	private String password;
 	private String schema;
 	private Object attachment;
+	private ResponseHandler respHandler;
 
 	private final AtomicBoolean isRunning;
 	private long lastTime; // QS_TODO
@@ -465,7 +466,7 @@ public class MySQLConnection extends BackendConnection {
 
 	@Override
 	public void error(int errCode, Throwable t) {
-		LOGGER.warn(toString()+" err "+ t);
+		LOGGER.warn(toString() + " err " + t);
 		switch (errCode) {
 		case ErrorCode.ERR_HANDLE_DATA:
 			// handle error ..
@@ -490,12 +491,22 @@ public class MySQLConnection extends BackendConnection {
 	public boolean setResponseHandler(ResponseHandler queryHandler) {
 		if (handler instanceof MySQLConnectionHandler) {
 			((MySQLConnectionHandler) handler).setResponseHandler(queryHandler);
+			respHandler = queryHandler;
 			return true;
 		} else if (queryHandler != null) {
 			LOGGER.warn("set not MySQLConnectionHandler "
 					+ queryHandler.getClass().getCanonicalName());
 		}
 		return false;
+	}
+
+	/**
+	 * 写队列为空，可以继续写数据
+	 */
+	public void writeQueueAvailable() {
+		if (respHandler != null) {
+			respHandler.writeQueueAvailable();
+		}
 	}
 
 	/**

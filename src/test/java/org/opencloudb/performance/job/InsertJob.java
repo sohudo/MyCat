@@ -3,6 +3,7 @@ package org.opencloudb.performance.job;
 import java.util.List;
 import java.util.Map;
 
+import org.opencloudb.performance.CalcMain;
 import org.opencloudb.performance.dao.InsertDAO;
 
 public class InsertJob implements Runnable{
@@ -15,6 +16,7 @@ public class InsertJob implements Runnable{
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		CalcMain.add(list.size());
 	}
 	public List<Map> getList() {
 		return list;

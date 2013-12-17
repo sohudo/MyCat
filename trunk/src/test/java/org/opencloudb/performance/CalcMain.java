@@ -18,8 +18,15 @@ import org.opencloudb.performance.job.InsertJob;
  *
  */
 public class CalcMain {
+	private static int count;
 	
-	public static void main(String[] args) {
+	public static void add(int count){
+		synchronized(CalcMain.class){
+			CalcMain.count += count;
+		}
+	}
+	
+	public static void main(String[] args) throws Exception {
 		
 		ExecutorService pool = Executors.newFixedThreadPool(50);
 		
@@ -28,14 +35,16 @@ public class CalcMain {
 		int c = 0;
 		for(int i=0;i<1000000;i++){
 			Map m = new HashMap();
-			m.put("coll_obj_id", i);
-			m.put("name", "obj" + i);
-			if(i%3==0){
+			m.put("id", i);
+			m.put("name", "meter" + i);
+			if(i%4==0){
 				m.put("org_no", "64401");
-			}else if(i%3==1){
+			}else if(i%4==1){
 				m.put("org_no", "64402");
-			}else if(i%3==2){
+			}else if(i%4==2){
 				m.put("org_no", "64403");
+			}else if(i%4==3){
+				m.put("org_no", "64404");
 			}
 			list.add(m);
 			c += 1;
@@ -47,6 +56,11 @@ public class CalcMain {
 				list = new ArrayList<Map>();
 			}
 		}
+		while(count < 1000000){
+			System.out.println("已插入记录条数:" + count);
+			Thread.sleep(3000);
+		}
+		System.out.println("最终记录路:" + count);
 		System.out.println("共用时" + (System.currentTimeMillis() - start)/1000 + "秒");
 	}
 }

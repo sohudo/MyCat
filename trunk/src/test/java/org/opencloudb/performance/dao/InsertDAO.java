@@ -11,21 +11,21 @@ public class InsertDAO extends BaseDAO{
 		PreparedStatement ps;
 		try {
 			this.getConnection(ConnLevel.normal);
-//			String sql = "insert into r_coll_obj(coll_obj_id,name,org_no) values(?,?,?)";
-//			ps = this.prepareStatement(sql);
-//			int c = 0;
-//			for (Map map : list) {
-//				ps.setInt(1, (Integer) map.get("coll_obj_id"));
-//				ps.setString(2, (String) map.get("name"));
-//				ps.setString(3, (String) map.get("org_no"));
-//				ps.addBatch();
-//				c += 1;
-//				if (c == 1000) {
-//					ps.executeBatch();
-//					c = 0;
-//				}
-//			}
-//			ps.executeBatch();
+			String sql = "insert into meters(id,name,org_no) values(?,?,?)";
+			ps = this.prepareStatement(sql);
+			int c = 0;
+			for (Map map : list) {
+				ps.setInt(1, (Integer) map.get("id"));
+				ps.setString(2, (String) map.get("name"));
+				ps.setString(3, (String) map.get("org_no"));
+				ps.addBatch();
+				c += 1;
+				if (c == 1000) {
+					ps.executeBatch();
+					c = 0;
+				}
+			}
+			ps.executeBatch();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally{

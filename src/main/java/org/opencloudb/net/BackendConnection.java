@@ -35,12 +35,21 @@ public abstract class BackendConnection extends AbstractConnection {
     protected long idleTimeout;
     protected NIOConnector connector;
     protected boolean isFinishConnect;
-
+    //supress socket read event temporary ,because client 
+    protected volatile boolean suppressReadTemporay;
     public BackendConnection(SocketChannel channel) {
         super(channel);
     }
 
-    public long getId() {
+    public boolean isSuppressReadTemporay() {
+		return suppressReadTemporay;
+	}
+
+	public void setSuppressReadTemporay(boolean suppressReadTemporay) {
+		this.suppressReadTemporay = suppressReadTemporay;
+	}
+
+	public long getId() {
         return id;
     }
 

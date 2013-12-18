@@ -24,92 +24,108 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public final class BufferQueue {
 
-    private int takeIndex;
-    private int putIndex;
-    private int count;
-    private final ByteBuffer[] items;
-    private final ReentrantLock lock;
-    private final Condition notFull;
-    private ByteBuffer attachment;
+	private int takeIndex;
+	private int putIndex;
+	private int count;
+	private final ByteBuffer[] items;
+	private final ReentrantLock lock;
+	private final Condition notFull;
+	private ByteBuffer attachment;
+	private final int total;
 
-    public BufferQueue(int capacity) {
-        items = new ByteBuffer[capacity];
-        lock = new ReentrantLock();
-        notFull = lock.newCondition();
-    }
+	public BufferQueue(int capacity) {
+		this.total = capacity;
+		items = new ByteBuffer[total];
+		lock = new ReentrantLock();
+		notFull = lock.newCondition();
 
-    public ByteBuffer attachment() {
-        return attachment;
-    }
+	}
 
-    public void attach(ByteBuffer buffer) {
-        this.attachment = buffer;
-    }
+	public ByteBuffer attachment() {
+		return attachment;
+	}
 
-    public int size() {
-        final ReentrantLock lock = this.lock;
-        lock.lock();
-        try {
-            return count;
-        } finally {
-            lock.unlock();
-        }
-    }
+	public void attach(ByteBuffer buffer) {
+		this.attachment = buffer;
+	}
 
-    public boolean isFull()
-    {
-    	return count>=items.length;
-    }
-    public void put(ByteBuffer buffer) throws InterruptedException {
-        final ByteBuffer[] items = this.items;
-        final ReentrantLock lock = this.lock;
-        lock.lockInterruptibly();
-        try {
-            try {
-                while (count == items.length) {
-                    notFull.await();
-                }
-            } catch (InterruptedException ie) {
-                notFull.signal();
-                throw ie;
-            }
-            insert(buffer);
-        } finally {
-            lock.unlock();
-        }
-    }
+	public int size() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			return count;
+		} finally {
+			lock.unlock();
+		}
+	}
 
-    public ByteBuffer poll() {
-        final ReentrantLock lock = this.lock;
-        lock.lock();
-        try {
-            if (count == 0) {
-                return null;
-            }
-            return extract();
-        } finally {
-            lock.unlock();
-        }
-    }
+	/**
+	 * queue used 3/4
+	 * 
+	 * @return
+	 */
+	public boolean isNearlyFull() {
+		return total * 3 / 4 < count;
+	}
 
-    private void insert(ByteBuffer buffer) {
-        items[putIndex] = buffer;
-        putIndex = inc(putIndex);
-        ++count;
-    }
+	/**
+	 * 
+	 * @param buffer
+	 * @return if queue is nearlyful
+	 * @throws InterruptedException
+	 */
+	public boolean put(ByteBuffer buffer) throws InterruptedException {
+		final ByteBuffer[] items = this.items;
+		final ReentrantLock lock = this.lock;
+		lock.lockInterruptibly();
+		try {
+			try {
+				while (count == items.length) {
+					notFull.await();
+				}
+			} catch (InterruptedException ie) {
+				notFull.signal();
+				throw ie;
+			}
+			insert(buffer);
+			return this.isNearlyFull();
+		} finally {
+			lock.unlock();
 
-    private ByteBuffer extract() {
-        final ByteBuffer[] items = this.items;
-        ByteBuffer buffer = items[takeIndex];
-        items[takeIndex] = null;
-        takeIndex = inc(takeIndex);
-        --count;
-        notFull.signal();
-        return buffer;
-    }
+		}
+	}
 
-    private int inc(int i) {
-        return (++i == items.length) ? 0 : i;
-    }
+	public ByteBuffer poll() {
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			if (count == 0) {
+				return null;
+			}
+			return extract();
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	private void insert(ByteBuffer buffer) {
+		items[putIndex] = buffer;
+		putIndex = inc(putIndex);
+		++count;
+	}
+
+	private ByteBuffer extract() {
+		final ByteBuffer[] items = this.items;
+		ByteBuffer buffer = items[takeIndex];
+		items[takeIndex] = null;
+		takeIndex = inc(takeIndex);
+		--count;
+		notFull.signal();
+		return buffer;
+	}
+
+	private int inc(int i) {
+		return (++i == items.length) ? 0 : i;
+	}
 
 }

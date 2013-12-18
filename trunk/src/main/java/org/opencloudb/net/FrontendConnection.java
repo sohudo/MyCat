@@ -60,6 +60,7 @@ public abstract class FrontendConnection extends AbstractConnection {
     protected FrontendPrepareHandler prepareHandler;
     protected boolean isAccepted;
     protected boolean isAuthenticated;
+   
 
     public FrontendConnection(SocketChannel channel) {
         super(channel);

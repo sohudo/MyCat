@@ -42,7 +42,8 @@ public class ServerConnection extends FrontendConnection {
 	private volatile boolean autocommit;
 	private volatile boolean txInterrupted;
 	private long lastInsertId;
-	private NonBlockingSession session2;
+	private NonBlockingSession session;
+	protected volatile boolean backReadSupressed = false;
 
 	public ServerConnection(SocketChannel channel) {
 		super(channel);
@@ -94,11 +95,11 @@ public class ServerConnection extends FrontendConnection {
 	}
 
 	public NonBlockingSession getSession2() {
-		return session2;
+		return session;
 	}
 
 	public void setSession2(NonBlockingSession session2) {
-		this.session2 = session2;
+		this.session = session2;
 	}
 
 	@Override
@@ -148,7 +149,7 @@ public class ServerConnection extends FrontendConnection {
 		}
 
 		// session执行
-		session2.execute(rrs, type);
+		session.execute(rrs, type);
 	}
 
 	/**
@@ -159,7 +160,7 @@ public class ServerConnection extends FrontendConnection {
 			writeErrMessage(ErrorCode.ER_YES,
 					"Transaction error, need to rollback.");
 		} else {
-			session2.commit();
+			session.commit();
 		}
 	}
 
@@ -173,7 +174,7 @@ public class ServerConnection extends FrontendConnection {
 		}
 
 		// 执行回滚
-		session2.rollback();
+		session.rollback();
 	}
 
 	/**
@@ -186,7 +187,7 @@ public class ServerConnection extends FrontendConnection {
 		processor.getExecutor().execute(new Runnable() {
 			@Override
 			public void run() {
-				session2.cancel(sponsor);
+				session.cancel(sponsor);
 			}
 		});
 	}
@@ -228,12 +229,30 @@ public class ServerConnection extends FrontendConnection {
 			processor.getExecutor().execute(new Runnable() {
 				@Override
 				public void run() {
-					session2.terminate();
+					session.terminate();
 				}
 			});
 			return true;
 		} else {
 			return false;
+		}
+	}
+
+	/**
+	 * when front connection write available ,back connections can read more
+	 * data to process and send
+	 */
+	public void writeQueueAvailable() {
+		if (backReadSupressed) {
+			session.unSupressTargetChannelReadEvent();
+			backReadSupressed = false;
+		}
+	}
+
+	public void writeQueueBlocked() {
+		if (!backReadSupressed) {
+			session.supressTargetChannelReadEvent();
+			backReadSupressed = true;
 		}
 	}
 

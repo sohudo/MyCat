@@ -127,6 +127,14 @@ public final class NIOReactor {
 
         private void read(NIOConnection c) {
             try {
+            	if(c instanceof BackendConnection)
+            	{//try to find if read temporary supressed
+            		if(((BackendConnection)c).isSuppressReadTemporay())
+            		{
+            		  System.out.println("ignore suppress Read Temporay con:"+c); 
+            		  return;
+            		}
+            	}
                 c.read();
             } catch (Throwable e) {
                 c.error(ErrorCode.ERR_READ, e);

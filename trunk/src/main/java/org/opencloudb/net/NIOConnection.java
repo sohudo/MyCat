@@ -51,9 +51,11 @@ public interface NIOConnection {
     void writeQueueAvailable();
     
     /**
-     * if write buffer full
+     * 通知write Queue已经满了
+     * 
      */
-    boolean isWriteQueueFull();
+    void writeQueueBlocked();
+    
 
     /**
      * 基于处理器队列的方式写数据
@@ -74,5 +76,6 @@ public interface NIOConnection {
      * 关闭连接
      */
     boolean close();
-
+    
+    
 }

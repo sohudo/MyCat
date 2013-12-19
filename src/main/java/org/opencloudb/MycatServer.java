@@ -117,7 +117,7 @@ public class MycatServer {
 		Map<String, MySQLDataNode> dataNodes = config.getDataNodes();
 		LOGGER.info("Initialize dataNodes ...");
 		for (MySQLDataNode node : dataNodes.values()) {
-			node.init(1, 0);
+			node.init(node.getConfig().getPoolSize()/2, 0);
 		}
 		timer.schedule(dataNodeIdleCheck(), 0L,
 				system.getDataNodeIdleCheckPeriod());

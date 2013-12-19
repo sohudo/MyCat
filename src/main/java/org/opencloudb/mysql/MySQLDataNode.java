@@ -304,6 +304,7 @@ public final class MySQLDataNode {
 	}
 
 	private boolean initSource(MySQLDataSource ds, int size) {
+		LOGGER.info("init backend myqsl source ,create connections total "+size+ " for "+ds.getName());
 		boolean success = true;
 		MySQLConnection[] list = new MySQLConnection[size < ds.size() ? size
 				: ds.size()];

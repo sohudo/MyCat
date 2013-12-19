@@ -460,14 +460,18 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	private boolean write0() throws IOException {
 		// 检查是否有遗留数据未写出
+		int written = 0;
 		ByteBuffer buffer = writeQueue.attachment();
 		if (buffer != null) {
-			int written = channel.write(buffer);
-			if (written > 0) {
-				netOutBytes += written;
-				processor.addNetOutBytes(written);
+			while (buffer.hasRemaining()) {
+				written = channel.write(buffer);
+				if (written > 0) {
+					netOutBytes += written;
+					processor.addNetOutBytes(written);
+					lastWriteTime = TimeUtil.currentTimeMillis();
+				}
 			}
-			lastWriteTime = TimeUtil.currentTimeMillis();
+
 			if (buffer.hasRemaining()) {
 				writeAttempts++;
 				return false;
@@ -488,10 +492,13 @@ public abstract class AbstractConnection implements NIOConnection {
 				return true;
 			}
 			buffer.flip();
-			int written = channel.write(buffer);
-			if (written > 0) {
-				netOutBytes += written;
-				processor.addNetOutBytes(written);
+			while (buffer.hasRemaining()) {
+				written = channel.write(buffer);
+				if (written > 0) {
+					netOutBytes += written;
+					processor.addNetOutBytes(written);
+					lastWriteTime = TimeUtil.currentTimeMillis();
+				}
 			}
 			lastWriteTime = TimeUtil.currentTimeMillis();
 			if (buffer.hasRemaining()) {

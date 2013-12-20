@@ -13,10 +13,10 @@ public class InsertJob implements Runnable{
 		InsertDAO dao = new InsertDAO();
 		try {
 			dao.insert(list);
+			CalcMain.add(list.size());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		CalcMain.add(list.size());
 	}
 	public List<Map> getList() {
 		return list;

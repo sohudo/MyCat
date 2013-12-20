@@ -28,27 +28,29 @@ public class CalcMain {
 	
 	public static void main(String[] args) throws Exception {
 		
-		ExecutorService pool = Executors.newFixedThreadPool(50);
+		ExecutorService pool = Executors.newFixedThreadPool(100);
 		
 		long start = System.currentTimeMillis();
 		List<Map> list = new ArrayList<Map>();
 		int c = 0;
-		for(int i=0;i<1000000;i++){
+		int sumcount = 100*10000;
+		for(int i=0;i<sumcount;i++){
 			Map m = new HashMap();
 			m.put("id", i);
-			m.put("name", "meter" + i);
-			if(i%4==0){
-				m.put("org_no", "64401");
-			}else if(i%4==1){
-				m.put("org_no", "64402");
-			}else if(i%4==2){
-				m.put("org_no", "64403");
-			}else if(i%4==3){
-				m.put("org_no", "64404");
+			m.put("name", "customer" + i);
+			if(i%3==0){
+				m.put("company_id", "1");
+				m.put("sharding_id", "10000");
+			}else if(i%3==1){
+				m.put("company_id", "2");
+				m.put("sharding_id", "10010");
+			}else if(i%3==2){
+				m.put("company_id", "3");
+				m.put("sharding_id", "10086");
 			}
 			list.add(m);
 			c += 1;
-			if(c==1000){
+			if(c==5000){
 				InsertJob job = new InsertJob();
 				job.setList(list);
 				pool.execute(job);
@@ -56,11 +58,13 @@ public class CalcMain {
 				list = new ArrayList<Map>();
 			}
 		}
-		while(count < 1000000){
+		System.out.println("已分配完任务，耗时:" + (System.currentTimeMillis() - start)/1000 + "秒");
+		while(count < sumcount){
 			System.out.println("已插入记录条数:" + count);
-			Thread.sleep(3000);
+			Thread.sleep(1000);
 		}
 		System.out.println("最终记录路:" + count);
+		pool.shutdown();
 		System.out.println("共用时" + (System.currentTimeMillis() - start)/1000 + "秒");
 	}
 }

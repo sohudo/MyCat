@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.opencloudb.performance.dao.ConnectionManager.ConnLevel;
 
-public class InsertDAO extends BaseDAO{
+public class CustomerDAO extends BaseDAO{
 	public void insert(List<Map> list){
 		PreparedStatement ps;
 		try {

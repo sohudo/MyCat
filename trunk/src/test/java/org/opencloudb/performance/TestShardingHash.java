@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 import org.opencloudb.performance.job.InsertJob;
 
 /**
+ * 测试按哈希分片功能
  * 1）连接MySQL集群中间件的8066端口
  * 2）获取采集数据库的数据将其插入到MySQL集群
  * 3） 取数据进行计算
@@ -17,17 +18,16 @@ import org.opencloudb.performance.job.InsertJob;
  * @author shenzhw
  *
  */
-public class CalcMain {
+public class TestShardingHash {
 	private static int count;
 	
 	public static void add(int count){
-		synchronized(CalcMain.class){
-			CalcMain.count += count;
+		synchronized(TestShardingHash.class){
+			TestShardingHash.count += count;
 		}
 	}
 	
-	public static void main(String[] args) throws Exception {
-		
+	public static void main(String[] args) throws Exception{
 		ExecutorService pool = Executors.newFixedThreadPool(100);
 		
 		long start = System.currentTimeMillis();

@@ -3,7 +3,7 @@ package org.opencloudb.performance.job;
 import java.util.List;
 import java.util.Map;
 
-import org.opencloudb.performance.CalcMain;
+import org.opencloudb.performance.TestShardingHash;
 import org.opencloudb.performance.dao.InsertDAO;
 
 public class InsertJob implements Runnable{
@@ -13,7 +13,7 @@ public class InsertJob implements Runnable{
 		InsertDAO dao = new InsertDAO();
 		try {
 			dao.insert(list);
-			CalcMain.add(list.size());
+			TestShardingHash.add(list.size());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

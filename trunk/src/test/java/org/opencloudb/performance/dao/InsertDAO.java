@@ -11,21 +11,18 @@ public class InsertDAO extends BaseDAO{
 		PreparedStatement ps;
 		try {
 			this.getConnection(ConnLevel.normal);
-			String sql = "insert into meters(id,name,org_no) values(?,?,?)";
+			this.beginTransAction();
+			String sql = "insert into customer(id,name,company_id,sharding_id) values(?,?,?,?)";
 			ps = this.prepareStatement(sql);
-			int c = 0;
 			for (Map map : list) {
 				ps.setInt(1, (Integer) map.get("id"));
 				ps.setString(2, (String) map.get("name"));
-				ps.setString(3, (String) map.get("org_no"));
+				ps.setString(3, (String) map.get("company_id"));
+				ps.setString(4, (String)map.get("sharding_id"));
 				ps.addBatch();
-				c += 1;
-				if (c == 1000) {
-					ps.executeBatch();
-					c = 0;
-				}
+				ps.executeBatch();
+				this.commitTransAction();
 			}
-			ps.executeBatch();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally{

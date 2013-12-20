@@ -63,9 +63,12 @@ public class InsertSQLAnalyser {
 		for (int i = 0; i < size; i++) {
 			ValueNode expNode = colList.get(i).getExpression();
 			if (expNode instanceof ConstantNode) {
+				Object value = ((ConstantNode) expNode).getValue();
+				if (value != null) {
+					String colVale = value.toString();
+					colMap.put(columnNames[i].toUpperCase(), colVale);
+				}
 
-				String colVale = ((ConstantNode) expNode).getValue().toString();
-				colMap.put(columnNames[i].toUpperCase(), colVale);
 				// System.out.println(columnNames[i] + " " + colVale);
 			} else {
 				colMap.put(columnNames[i].toUpperCase(), "?");

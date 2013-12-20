@@ -39,6 +39,7 @@ public final class ServerParseSelect {
 	private static final char[] _LAST_INSERT_ID = "LAST_INSERT_ID"
 			.toCharArray();
 	private static final char[] _DATABASE = "DATABASE()".toCharArray();
+	private static final char[] _CURRENT_USER = "CURRENT_USER()".toCharArray();
 
 	public static int parse(String stmt, int offset) {
 		int i = offset;
@@ -61,6 +62,9 @@ public final class ServerParseSelect {
 			case 'U':
 			case 'u':
 				return userCheck(stmt, i);
+			case 'C':
+			case 'c':
+				return currentUserCheck(stmt, i);
 			case 'V':
 			case 'v':
 				return versionCheck(stmt, i);
@@ -467,6 +471,22 @@ public final class ServerParseSelect {
 					&& (c5 == ')')
 					&& (stmt.length() == ++offset || ParseUtil.isEOF(stmt
 							.charAt(offset)))) {
+				return USER;
+			}
+		}
+		return OTHER;
+	}
+
+	/**
+	 * SELECT USER()
+	 */
+	static int currentUserCheck(String stmt, int offset) {
+		int length = offset + _CURRENT_USER.length;
+		if (stmt.length() >= length) {
+			if (ParseUtil.compare(stmt, offset, _CURRENT_USER)) {
+				if (stmt.length() > length && stmt.charAt(length) != ' ') {
+					return OTHER;
+				}
 				return USER;
 			}
 		}

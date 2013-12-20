@@ -76,8 +76,12 @@ public final class ServerRouter {
 		}
 		// 判断是否是show tables 之类的语句
 		if (sqlType == ServerParse.SHOW) {
-
 			return analyseShowSQL(schema, rrs, stmt);
+		}
+		
+		// 判断是否是 select @@.. 之类的语句
+		if(sqlType == ServerParse.SELECT && stmt.contains("@@")) {
+			return analyseDoubleAtSgin(schema, rrs, stmt);
 		}
 
 		// 判断是否是元数据SQL，如describe table
@@ -257,6 +261,18 @@ public final class ServerRouter {
 		return tabInd;
 	}
 
+	private static RouteResultset analyseDoubleAtSgin(SchemaConfig schema,
+			RouteResultset rrs, String stmt) throws SQLSyntaxErrorException {
+		String upStmt = stmt.toUpperCase();
+		
+		int atSginInd = upStmt.indexOf(" @@");
+		if (atSginInd > 0) {
+			return routeToMultiNode(false,null,rrs, schema.getMetaDataNodes(), stmt);
+		}
+
+		return routeToSingleNode(rrs, schema.getRandomDataNode(), stmt);
+	}
+	
 	private static RouteResultset analyseShowSQL(SchemaConfig schema,
 			RouteResultset rrs, String stmt) throws SQLSyntaxErrorException {
 		String upStmt = stmt.toUpperCase();
@@ -265,7 +281,11 @@ public final class ServerRouter {
 			int[] nextPost = getSpecPos(upStmt, 0);
 			if (nextPost[0] > 0) {// remove db info
 				int end = getSpecEndPos(upStmt, tabInd);
-				stmt = "SHOW TABLES" + stmt.substring(end);
+				if (upStmt.indexOf(" FULL") > 0) {
+					stmt = "SHOW FULL TABLES" + stmt.substring(end);
+				} else {
+					stmt = "SHOW TABLES" + stmt.substring(end);
+				}
 			}
 			return routeToMultiNode(false,null,rrs, schema.getMetaDataNodes(), stmt);
 		}

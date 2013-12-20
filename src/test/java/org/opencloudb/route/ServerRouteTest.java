@@ -639,10 +639,10 @@ public class ServerRouteTest extends AbstractAliasConvert {
 				"offer_dn[0]", "independent_dn[0]");
 		nameAsserter.assertRouteNodeNames(nodeMap.keySet());
 		SimpleSQLAsserter sqlAsserter = new SimpleSQLAsserter();
-		sqlAsserter.addExpectSQL(0, "SHOW TABLES like 'solo'")
-				.addExpectSQL(1, "SHOW TABLES like 'solo'")
-				.addExpectSQL(2, "SHOW TABLES like 'solo'")
-				.addExpectSQL(3, "SHOW TABLES like 'solo'");
+		sqlAsserter.addExpectSQL(0, "SHOW FULL TABLES like 'solo'")
+				.addExpectSQL(1, "SHOW FULL TABLES like 'solo'")
+				.addExpectSQL(2, "SHOW FULL TABLES like 'solo'")
+				.addExpectSQL(3, "SHOW FULL TABLES like 'solo'");
 		RouteNodeAsserter asserter = new RouteNodeAsserter(nameAsserter,
 				sqlAsserter);
 		for (RouteResultsetNode node : nodeMap.values()) {

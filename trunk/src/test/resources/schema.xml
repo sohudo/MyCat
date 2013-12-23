@@ -22,32 +22,20 @@
   </schema>
 
   <!-- 数据节点定义，数据节点由数据源和其他一些参数组织而成。 -->
-  <dataNode name="dnTest1">
-    <property name="dataSource">
-      <dataSourceRef>dsTest[0]</dataSourceRef>
-    </property>
-  </dataNode>
-  <dataNode name="dnTest2">
-    <property name="dataSource">
-      <dataSourceRef>dsTest[1]</dataSourceRef>
-    </property>
-  </dataNode>
-  <dataNode name="dnTest3">
-    <property name="dataSource">
-      <dataSourceRef>dsTest[2]</dataSourceRef>
-    </property>
-  </dataNode>
+  <dataNode name="dnTest1" dataHost="localhost1" database="db1" /> 
+  <dataNode name="dnTest2" dataHost="localhost1" database="db2" />
+  <dataNode name="dnTest3" dataHost="localhost1" database="db3" />
+<dataHost name="localhost1" maxCon="500" minCon="10" balance="0"
+		dbType="mysql" dbDriver="native" banlance="0">
+		<heartbeat>select user()</heartbeat>
+		<!-- can have multi write hosts -->
+		<writeHost host="hostM1" url="localhost:3306" user="root"
+			password="123456">
+			<!-- can have multi read hosts -->
+			<!-- <readHost host="hostS1" url="localhost:3307" user="root" password="123456" 
+				/> -->
+		</writeHost>
+	</dataHost>
 
-  <!-- 数据源定义，数据源是一个具体的后端数据连接的表示。 -->
-  <dataSource name="dsTest" type="mysql">
-    <property name="location">
-      <location>10.20.153.177:3316/offer1</location>
-      <location>10.20.153.177:3316/offer1</location>
-      <location>10.20.153.177:3316/offer1</location>
-    </property>
-    <property name="user">offer</property>
-    <property name="password">offer</property>
-    <property name="sqlMode">STRICT_TRANS_TABLES</property>
-  </dataSource>
-
+ 
 </mycat:schema>

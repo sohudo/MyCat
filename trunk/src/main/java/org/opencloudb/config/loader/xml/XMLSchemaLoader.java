@@ -233,24 +233,43 @@ public class XMLSchemaLoader implements SchemaLoader {
 		NodeList list = root.getElementsByTagName("dataNode");
 		for (int i = 0, n = list.getLength(); i < n; i++) {
 			Element element = (Element) list.item(i);
-			String dnName = element.getAttribute("name");
-			String database = element.getAttribute("database");
+			String dnNamePre = element.getAttribute("name");
+
+			String databaseStr = element.getAttribute("database");
 			String host = element.getAttribute("dataHost");
-			if (empty(dnName) || empty(database) || empty(host)) {
-				throw new ConfigException("dataNode " + dnName
+			if (empty(dnNamePre) || empty(databaseStr) || empty(host)) {
+				throw new ConfigException("dataNode " + dnNamePre
 						+ " define error ,attribute can't be empty");
 			}
-			DataNodeConfig conf = new DataNodeConfig(dnName, database, host);
-			if (dataNodes.containsKey(conf.getName())) {
-				throw new ConfigException("dataNode " + conf.getName()
-						+ " duplicated!");
+			String[] databases = org.opencloudb.util.SplitUtil.split(
+					databaseStr, ',', '$', '-', 's', '_');
+			if (databases.length > 1) {
+				for (int k = 0; k < databases.length; k++) {
+					String databaseName = databases[k].substring(0,
+							databases[k].length() - 1);
+					createDataNode(dnNamePre + '[' + k + ']', databaseName,
+							host);
+					// System.out.println("dn:"+dnNamePre + '[' + k +
+					// ']'+",databse:"+databaseName+",host:"+host);
+				}
+			} else {
+				createDataNode(dnNamePre, databaseStr, host);
 			}
-			if (!dataHosts.containsKey(host)) {
-				throw new ConfigException("dataNode " + dnName
-						+ " reference dataHost:" + host + " not exists!");
-			}
-			dataNodes.put(conf.getName(), conf);
+
 		}
+	}
+
+	private void createDataNode(String dnName, String database, String host) {
+		DataNodeConfig conf = new DataNodeConfig(dnName, database, host);
+		if (dataNodes.containsKey(conf.getName())) {
+			throw new ConfigException("dataNode " + conf.getName()
+					+ " duplicated!");
+		}
+		if (!dataHosts.containsKey(host)) {
+			throw new ConfigException("dataNode " + dnName
+					+ " reference dataHost:" + host + " not exists!");
+		}
+		dataNodes.put(conf.getName(), conf);
 	}
 
 	private boolean empty(String dnName) {
@@ -258,7 +277,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 	}
 
 	private DBHostConfig createDBHostConf(String dataHost, Element node,
-			String dbType, String dbDriver,int maxCon,int minCon) {
+			String dbType, String dbDriver, int maxCon, int minCon) {
 		String nodeHost = node.getAttribute("host");
 		String nodeUrl = node.getAttribute("url");
 		String user = node.getAttribute("user");
@@ -320,14 +339,14 @@ public class XMLSchemaLoader implements SchemaLoader {
 			for (int w = 0; w < writeDbConfs.length; w++) {
 				Element writeNode = (Element) writeNodes.item(w);
 				writeDbConfs[w] = createDBHostConf(name, writeNode, dbType,
-						dbDriver,maxCon,minCon);
+						dbDriver, maxCon, minCon);
 				NodeList readNodes = writeNode.getElementsByTagName("readHost");
 				DBHostConfig[] readDbConfs = new DBHostConfig[readNodes
 						.getLength()];
 				for (int r = 0; r < readDbConfs.length; r++) {
 					Element readNode = (Element) readNodes.item(r);
 					readDbConfs[r] = createDBHostConf(name, readNode, dbType,
-							dbDriver,maxCon,minCon);
+							dbDriver, maxCon, minCon);
 				}
 				readHostsMap.put(w, readDbConfs);
 

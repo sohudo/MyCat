@@ -41,6 +41,18 @@ public class ServerParserTest {
         Assert.assertEquals(ServerParse.COMMIT, ServerParse.parse("COMMIT"));
         Assert.assertEquals(ServerParse.COMMIT, ServerParse.parse("cOmmiT "));
     }
+    
+
+    @Test
+    public void testComment() {
+        Assert.assertEquals(ServerParse.MYSQL_CMD_COMMENT, ServerParse.parse("/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */"));
+        Assert.assertEquals(ServerParse.MYSQL_CMD_COMMENT, ServerParse.parse("/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */"));
+        Assert.assertEquals(ServerParse.MYSQL_CMD_COMMENT, ServerParse.parse("/*!40101 SET @saved_cs_client     = @@character_set_client */"));
+   
+        Assert.assertEquals(ServerParse.MYSQL_COMMENT, ServerParse.parse("/*SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */"));
+        Assert.assertEquals(ServerParse.MYSQL_COMMENT, ServerParse.parse("/*SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */"));
+        Assert.assertEquals(ServerParse.MYSQL_COMMENT, ServerParse.parse("/*SET @saved_cs_client     = @@character_set_client */"));
+    }
 
     @Test
     public void testIsDelete() {

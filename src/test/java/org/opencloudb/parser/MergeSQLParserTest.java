@@ -31,7 +31,7 @@ public class MergeSQLParserTest {
 		RouteResultset rrs = new RouteResultset(sql);
 		String sql2 = SelectSQLAnalyser.analyseMergeInf(rrs, ast, true);
 		Assert.assertEquals(
-				"SELECT * FROM orders AS o GROUP BY o.name ORDER BY o.id, o.age DESC LIMIT 15 OFFSET 0",
+				"SELECT o.* FROM orders AS o GROUP BY o.name ORDER BY o.id, o.age DESC LIMIT 15 OFFSET 0",
 				sql2);
 
 		Assert.assertEquals("name", rrs.getGroupByCols()[0]);

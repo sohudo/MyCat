@@ -22,6 +22,7 @@ import org.opencloudb.config.ErrorCode;
 import org.opencloudb.net.handler.FrontendPrivileges;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.server.ServerConnection;
+import org.opencloudb.util.StringUtil;
 
 /**
  * @author mycat
@@ -33,6 +34,7 @@ public final class UseHandler {
         int length = schema.length();
         if (length > 0) {
         	if(schema.endsWith(";")) schema=schema.substring(0,schema.length()-1);
+        	schema = StringUtil.replaceChars(schema, "`", null);
         	length=schema.length();
             if (schema.charAt(0) == '\'' && schema.charAt(length - 1) == '\'') {
                 schema = schema.substring(1, length - 1);

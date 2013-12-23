@@ -265,7 +265,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 				return;
 			}
 
-			sql = StringUtil.replace(sql, "`", "");
+			//sql = StringUtil.replace(sql, "`", "");
 
 			// remove last ';'
 			if (sql.endsWith(";")) {

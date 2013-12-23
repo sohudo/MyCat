@@ -26,12 +26,13 @@ import java.util.Map;
 
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalDBNode;
+import org.opencloudb.backend.PhysicalDBPool;
+import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.Fields;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.manager.ManagerConnection;
-import org.opencloudb.mysql.MySQLDataNode;
 import org.opencloudb.mysql.PacketUtil;
-import org.opencloudb.mysql.nio.MySQLDataSource;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
@@ -66,7 +67,7 @@ public final class ShowDataNode {
         fields[i] = PacketUtil.getField("NAME", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
 
-        fields[i] = PacketUtil.getField("DATASOURCES", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i] = PacketUtil.getField("DATHOST", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
 
         fields[i] = PacketUtil.getField("INDEX", Fields.FIELD_TYPE_LONG);
@@ -119,7 +120,7 @@ public final class ShowDataNode {
         // write rows
         byte packetId = eof.packetId;
         MycatConfig conf = MycatServer.getInstance().getConfig();
-        Map<String, MySQLDataNode> dataNodes = conf.getDataNodes();
+        Map<String, PhysicalDBNode> dataNodes = conf.getDataNodes();
         List<String> keys = new ArrayList<String>();
         if (StringUtil.isEmpty(name)) {
             keys.addAll(dataNodes.keySet());
@@ -145,17 +146,18 @@ public final class ShowDataNode {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(MySQLDataNode node, String charset) {
+    private static RowDataPacket getRow(PhysicalDBNode node, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(StringUtil.encode(node.getName(), charset));
-        row.add(StringUtil.encode(node.getConfig().getDataSource(), charset));
-        MySQLDataSource ds = node.getSource();
+        row.add(StringUtil.encode(node.getDbPool().getHostName()+'/'+node.getDatabase(), charset));
+        PhysicalDBPool pool=node.getDbPool();
+        PhysicalDatasource ds = pool.getSource();
         if (ds != null) {
-            row.add(IntegerUtil.toBytes(ds.getIndex()));
-            row.add(ds.getConfig().getType().getBytes());
+            row.add(IntegerUtil.toBytes(pool.getActivedIndex()));
+            row.add(StringUtil.encode(ds.getConfig().getDbType(),charset));
             row.add(IntegerUtil.toBytes(ds.getActiveCount()));
             row.add(IntegerUtil.toBytes(ds.getIdleCount()));
-            row.add(IntegerUtil.toBytes(ds.size()));
+            row.add(IntegerUtil.toBytes(ds.getSize()));
         } else {
             row.add(null);
             row.add(null);
@@ -167,7 +169,7 @@ public final class ShowDataNode {
         row.add(StringUtil.encode(nf.format(0), charset));
         row.add(StringUtil.encode(nf.format(0), charset));
         row.add(LongUtil.toBytes(0));
-        long recoveryTime = node.getHeartbeatRecoveryTime() - TimeUtil.currentTimeMillis();
+        long recoveryTime = pool.getSource().getHeartbeatRecoveryTime() - TimeUtil.currentTimeMillis();
         row.add(LongUtil.toBytes(recoveryTime > 0 ? recoveryTime / 1000L : -1L));
         return row;
     }

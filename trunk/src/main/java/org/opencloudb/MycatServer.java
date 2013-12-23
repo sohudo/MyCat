@@ -22,9 +22,9 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.manager.ManagerConnectionFactory;
-import org.opencloudb.mysql.MySQLDataNode;
 import org.opencloudb.net.NIOAcceptor;
 import org.opencloudb.net.NIOConnector;
 import org.opencloudb.net.NIOProcessor;
@@ -97,14 +97,17 @@ public class MycatServer {
 		timer.schedule(updateTime(), 0L, TIME_UPDATE_PERIOD);
 
 		// startup processors
-		LOGGER.info("Startup processors ...");
-		//int handler = system.getProcessorHandler();
-		int executor = system.getProcessorExecutor()*2;
+		int executor = system.getProcessorExecutor() * 2;
+
+		// int handler = system.getProcessorHandler();
+
 		processors = new NIOProcessor[system.getProcessors()];
 		for (int i = 0; i < processors.length; i++) {
 			processors[i] = new NIOProcessor("Processor" + i, 0, executor);
 			processors[i].startup();
 		}
+		LOGGER.info("Startup processors ...,total processor:"
+				+ processors.length + " thread pool size:" + executor);
 		timer.schedule(processorCheck(), 0L, system.getProcessorCheckPeriod());
 
 		// startup connector
@@ -113,11 +116,12 @@ public class MycatServer {
 		connector.setProcessors(processors);
 		connector.start();
 
-		// init dataNodes
-		Map<String, MySQLDataNode> dataNodes = config.getDataNodes();
-		LOGGER.info("Initialize dataNodes ...");
-		for (MySQLDataNode node : dataNodes.values()) {
-			node.init(node.getConfig().getPoolSize()/2, 0);
+		// init datahost
+		Map<String, PhysicalDBPool> dataHosts = config.getDataHosts();
+		LOGGER.info("Initialize dataHost ...");
+		for (PhysicalDBPool node : dataHosts.values()) {
+			node.init(0);
+			node.startHeartbeat();
 		}
 		timer.schedule(dataNodeIdleCheck(), 0L,
 				system.getDataNodeIdleCheckPeriod());
@@ -225,15 +229,15 @@ public class MycatServer {
 				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
-						Map<String, MySQLDataNode> nodes = config
-								.getDataNodes();
-						for (MySQLDataNode node : nodes.values()) {
+						Map<String, PhysicalDBPool> nodes = config
+								.getDataHosts();
+						for (PhysicalDBPool node : nodes.values()) {
 							node.idleCheck();
 						}
-						Map<String, MySQLDataNode> _nodes = config
-								.getBackupDataNodes();
+						Map<String, PhysicalDBPool> _nodes = config
+								.getBackupDataHosts();
 						if (_nodes != null) {
-							for (MySQLDataNode node : _nodes.values()) {
+							for (PhysicalDBPool node : _nodes.values()) {
 								node.idleCheck();
 							}
 						}
@@ -251,9 +255,9 @@ public class MycatServer {
 				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
-						Map<String, MySQLDataNode> nodes = config
-								.getDataNodes();
-						for (MySQLDataNode node : nodes.values()) {
+						Map<String, PhysicalDBPool> nodes = config
+								.getDataHosts();
+						for (PhysicalDBPool node : nodes.values()) {
 							node.doHeartbeat();
 						}
 					}

@@ -13,7 +13,7 @@
  - See the License for the specific language governing permissions and
  - limitations under the License.
 -->
-<!ELEMENT mycat:schema (schema*,dataNode*,dataHost*)>
+<!ELEMENT mycat:schema (schema*,dataNode*,dataSource*)>
 <!ATTLIST mycat:schema xmlns:mycat CDATA #FIXED "http://org.opencloudb/">
 
 <!ELEMENT schema (table*)>
@@ -33,34 +33,19 @@
 <!ATTLIST childTable parentKey NMTOKEN #REQUIRED>
 
 
-<!ELEMENT dataNode (property*)>
+<!ELEMENT dataNode (property+)>
 <!ATTLIST dataNode name NMTOKEN #REQUIRED>
-<!ATTLIST dataNode dataHost NMTOKEN #REQUIRED>
-<!ATTLIST dataNode database NMTOKEN #REQUIRED>
 
-<!ELEMENT dataHost (heartbeat,(writeHost+))>
-<!ATTLIST dataHost
-  balance CDATA #REQUIRED
-  maxCon CDATA #REQUIRED
-  minCon CDATA #REQUIRED
-  name NMTOKEN #REQUIRED
-  banlance CDATA #REQUIRED
-  dbType CDATA #REQUIRED
-  dbDriver CDATA #REQUIRED>
+<!ELEMENT dataSource (property+)>
+<!ATTLIST dataSource name NMTOKEN #REQUIRED>
+<!ATTLIST dataSource type NMTOKEN #REQUIRED>
 
-<!ELEMENT writeHost (readHost)*>
-<!ATTLIST writeHost
-  host NMTOKEN #REQUIRED
-  url NMTOKEN #REQUIRED
-  password CDATA #REQUIRED
-  user NMTOKEN #REQUIRED>
+<!ELEMENT property ( #PCDATA | bean | dataSourceRef | location )*>
+<!ATTLIST property name NMTOKEN #REQUIRED>
 
-<!ELEMENT heartbeat (#PCDATA)>
-<!ELEMENT readHost (property*) >
-<!ATTLIST readHost
-  host NMTOKEN #REQUIRED
-  url NMTOKEN #REQUIRED
-  password CDATA #REQUIRED
-  user NMTOKEN #REQUIRED>
+<!ELEMENT bean (property*)>
+<!ATTLIST bean name NMTOKEN #IMPLIED>
+<!ATTLIST bean class NMTOKEN #REQUIRED>
 
-
+<!ELEMENT dataSourceRef (#PCDATA)>
+<!ELEMENT location (#PCDATA)>

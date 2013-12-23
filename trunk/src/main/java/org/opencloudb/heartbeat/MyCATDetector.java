@@ -33,12 +33,12 @@ import org.opencloudb.util.TimeUtil;
 /**
  * @author mycat
  */
-public class CobarDetector extends BackendConnection {
-    private static final Logger LOGGER = Logger.getLogger(CobarDetector.class);
+public class MyCATDetector extends BackendConnection {
+    private static final Logger LOGGER = Logger.getLogger(MyCATDetector.class);
     private static final long CLIENT_FLAGS = initClientFlags();
     private static final Logger HEARTBEAT = Logger.getLogger("heartbeat");
 
-    private CobarHeartbeat heartbeat;
+    private MyCATHeartbeat heartbeat;
     private final long clientFlags;
     private HandshakePacket handshake;
     private int charsetIndex;
@@ -48,18 +48,18 @@ public class CobarDetector extends BackendConnection {
     private long heartbeatTimeout;
     private final AtomicBoolean isQuit;
 
-    public CobarDetector(SocketChannel channel) {
+    public MyCATDetector(SocketChannel channel) {
         super(channel);
         this.clientFlags = CLIENT_FLAGS;
-        this.handler = new CobarDetectorAuthenticator(this);
+        this.handler = new MyCATDetectorAuthenticator(this);
         this.isQuit = new AtomicBoolean(false);
     }
 
-    public CobarHeartbeat getHeartbeat() {
+    public MyCATHeartbeat getHeartbeat() {
         return heartbeat;
     }
 
-    public void setHeartbeat(CobarHeartbeat heartbeat) {
+    public void setHeartbeat(MyCATHeartbeat heartbeat) {
         this.heartbeat = heartbeat;
     }
 
@@ -142,7 +142,7 @@ public class CobarDetector extends BackendConnection {
             hp.id = heartbeat.detectCount.incrementAndGet();
             hp.write(this);
             if (HEARTBEAT.isInfoEnabled()) {
-                HEARTBEAT.info(heartbeat.requestMessage(CobarHeartbeat.SEND, String.valueOf(hp.id).getBytes()));
+                HEARTBEAT.info(heartbeat.requestMessage(MyCATHeartbeat.SEND, String.valueOf(hp.id).getBytes()));
             }
         } else {
             authenticate();
@@ -164,10 +164,10 @@ public class CobarDetector extends BackendConnection {
         LOGGER.warn(toString(), t);
         switch (errCode) {
         case ErrorCode.ERR_HANDLE_DATA:
-            heartbeat.setResult(CobarHeartbeat.ERROR_STATUS, this, false, null);
+            heartbeat.setResult(MyCATHeartbeat.ERROR_STATUS, this, false, null);
             break;
         default:
-            heartbeat.setResult(CobarHeartbeat.ERROR_STATUS, this, true, null);
+            heartbeat.setResult(MyCATHeartbeat.ERROR_STATUS, this, true, null);
         }
     }
 

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 import org.apache.log4j.Logger;
-import org.opencloudb.mysql.nio.MySQLConnection;
+import org.opencloudb.backend.PhysicalConnection;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
@@ -61,7 +61,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
                 }
                 continue;
             }
-            final MySQLConnection conn = session.getTarget(node);
+            final PhysicalConnection conn = session.getTarget(node);
             if (conn != null) {
                 conn.setRunning(true);
                 executor.execute(new Runnable() {
@@ -89,7 +89,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
     }
 
     @Override
-    public void okResponse(byte[] ok, MySQLConnection conn) {
+    public void okResponse(byte[] ok, PhysicalConnection conn) {
         conn.setRunning(false);
         if (decrementCountBy(1)) {
             if (isFail.get() || session.closed()) {
@@ -101,36 +101,36 @@ public class RollbackNodeHandler extends MultiNodeHandler {
     }
 
     @Override
-    public void errorResponse(byte[] data, MySQLConnection conn) {
+    public void errorResponse(byte[] data, PhysicalConnection conn) {
         ErrorPacket err = new ErrorPacket();
         err.read(data);
         backendConnError(conn, err);
     }
 
     @Override
-    public void rowEofResponse(byte[] eof, MySQLConnection conn) {
+    public void rowEofResponse(byte[] eof, PhysicalConnection conn) {
         backendConnError(conn, "Unknown response packet for back-end rollback");
     }
 
     @Override
-    public void connectionError(Throwable e, MySQLConnection conn) {
+    public void connectionError(Throwable e, PhysicalConnection conn) {
         backendConnError(conn, "connection err for " + conn);
     }
 
     @Override
-    public void connectionAcquired(MySQLConnection conn) {
+    public void connectionAcquired(PhysicalConnection conn) {
         logger.error("unexpected invocation: connectionAcquired from rollback");
         conn.release();
     }
 
     @Override
-    public void fieldEofResponse(byte[] header, List<byte[]> fields, byte[] eof, MySQLConnection conn) {
+    public void fieldEofResponse(byte[] header, List<byte[]> fields, byte[] eof, PhysicalConnection conn) {
         logger.error(new StringBuilder().append("unexpected packet for ").append(conn).append(" bound by ")
                 .append(session.getSource()).append(": field's eof").toString());
     }
 
     @Override
-    public void rowResponse(byte[] row, MySQLConnection conn) {
+    public void rowResponse(byte[] row, PhysicalConnection conn) {
         logger.error(new StringBuilder().append("unexpected packet for ").append(conn).append(" bound by ")
                 .append(session.getSource()).append(": field's eof").toString());
     }

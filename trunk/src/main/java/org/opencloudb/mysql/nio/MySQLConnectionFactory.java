@@ -19,7 +19,7 @@ import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
 import org.opencloudb.MycatServer;
-import org.opencloudb.config.model.DataSourceConfig;
+import org.opencloudb.config.model.DBHostConfig;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.factory.BackendConnectionFactory;
 
@@ -27,19 +27,21 @@ import org.opencloudb.net.factory.BackendConnectionFactory;
  * @author mycat
  */
 public class MySQLConnectionFactory extends BackendConnectionFactory {
-    public MySQLConnection make(MySQLDataSource pool, ResponseHandler handler) throws IOException {
-        SocketChannel channel = openSocketChannel();
-        DataSourceConfig dsc = pool.getConfig();
-        MySQLConnection c = new MySQLConnection(channel);
-        c.setHost(dsc.getHost());
-        c.setPort(dsc.getPort());
-        c.setUser(dsc.getUser());
-        c.setPassword(dsc.getPassword());
-        c.setSchema(dsc.getDatabase());
-        c.setHandler(new MySQLConnectionAuthenticator(c, handler));
-        c.setPool(pool);
-        postConnect(c, MycatServer.getInstance().getConnector());
-        return c;
-    }
+	public MySQLConnection make(MySQLDataSource pool, ResponseHandler handler)
+			throws IOException {
+		SocketChannel channel = openSocketChannel();
+		DBHostConfig dsc = pool.getConfig();
+
+		MySQLConnection c = new MySQLConnection(channel);
+		c.setHost(dsc.getIp());
+		c.setPort(dsc.getPort());
+		c.setUser(dsc.getUser());
+		c.setPassword(dsc.getPassword());
+		// c.setSchema(dsc.getDatabase());
+		c.setHandler(new MySQLConnectionAuthenticator(c, handler));
+		c.setPool(pool);
+		postConnect(c, MycatServer.getInstance().getConnector());
+		return c;
+	}
 
 }

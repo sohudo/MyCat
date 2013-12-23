@@ -16,8 +16,8 @@
 package org.opencloudb;
 
 import org.apache.log4j.Logger;
-import org.opencloudb.config.model.CobarNodeConfig;
-import org.opencloudb.heartbeat.CobarHeartbeat;
+import org.opencloudb.config.model.MycatNodeConfig;
+import org.opencloudb.heartbeat.MyCATHeartbeat;
 
 /**
  * @author mycat
@@ -26,24 +26,24 @@ public class MycatNode {
     private static final Logger LOGGER = Logger.getLogger(MycatNode.class);
 
     private final String name;
-    private final CobarNodeConfig config;
-    private final CobarHeartbeat heartbeat;
+    private final MycatNodeConfig config;
+    private final MyCATHeartbeat heartbeat;
 
-    public MycatNode(CobarNodeConfig config) {
+    public MycatNode(MycatNodeConfig config) {
         this.name = config.getName();
         this.config = config;
-        this.heartbeat = new CobarHeartbeat(this);
+        this.heartbeat = new MyCATHeartbeat(this);
     }
 
     public String getName() {
         return name;
     }
 
-    public CobarNodeConfig getConfig() {
+    public MycatNodeConfig getConfig() {
         return config;
     }
 
-    public CobarHeartbeat getHeartbeat() {
+    public MyCATHeartbeat getHeartbeat() {
         return heartbeat;
     }
 
@@ -66,7 +66,7 @@ public class MycatNode {
     }
 
     public boolean isOnline() {
-        return (heartbeat.getStatus() == CobarHeartbeat.OK_STATUS);
+        return (heartbeat.getStatus() == MyCATHeartbeat.OK_STATUS);
     }
 
 }

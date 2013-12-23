@@ -21,8 +21,8 @@ package org.opencloudb.mysql.nio.handler;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.opencloudb.backend.PhysicalConnection;
 import org.opencloudb.config.ErrorCode;
-import org.opencloudb.mysql.nio.MySQLConnection;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.util.StringUtil;
@@ -105,7 +105,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		packetId = 0;
 	}
 
-	protected void backendConnError(MySQLConnection conn, String errMsg) {
+	protected void backendConnError(PhysicalConnection conn, String errMsg) {
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = 1;// ERROR_PACKET
 		err.errno = ErrorCode.ER_YES;
@@ -114,7 +114,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		backendConnError(conn, err);
 	}
 
-	protected void backendConnError(MySQLConnection conn, ErrorPacket err) {
+	protected void backendConnError(PhysicalConnection conn, ErrorPacket err) {
 		conn.setRunning(false);
 		lock.lock();
 		try {

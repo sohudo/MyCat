@@ -20,8 +20,8 @@ package org.opencloudb.config.loader;
 
 import java.util.Map;
 
+import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.config.model.DataNodeConfig;
-import org.opencloudb.config.model.DataSourceConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.rule.TableRuleConfig;
 
@@ -31,7 +31,7 @@ import org.opencloudb.config.model.rule.TableRuleConfig;
 public interface SchemaLoader {
     Map<String, TableRuleConfig> getTableRules();
 
-    Map<String, DataSourceConfig> getDataSources();
+    Map<String, DataHostConfig> getDataHosts();
 
     Map<String, DataNodeConfig> getDataNodes();
 

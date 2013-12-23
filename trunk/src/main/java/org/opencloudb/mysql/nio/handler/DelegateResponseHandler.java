@@ -20,7 +20,7 @@ package org.opencloudb.mysql.nio.handler;
 
 import java.util.List;
 
-import org.opencloudb.mysql.nio.MySQLConnection;
+import org.opencloudb.backend.PhysicalConnection;
 
 /**
  * @author mycat
@@ -36,37 +36,37 @@ public class DelegateResponseHandler implements ResponseHandler {
     }
 
     @Override
-    public void connectionAcquired(MySQLConnection conn) {
+    public void connectionAcquired(PhysicalConnection conn) {
         target.connectionAcquired(conn);
     }
 
     @Override
-    public void connectionError(Throwable e, MySQLConnection conn) {
+    public void connectionError(Throwable e, PhysicalConnection conn) {
         target.connectionError(e, conn);
     }
 
     @Override
-    public void okResponse(byte[] ok, MySQLConnection conn) {
+    public void okResponse(byte[] ok, PhysicalConnection conn) {
         target.okResponse(ok, conn);
     }
 
     @Override
-    public void errorResponse(byte[] err, MySQLConnection conn) {
+    public void errorResponse(byte[] err, PhysicalConnection conn) {
         target.errorResponse(err, conn);
     }
 
     @Override
-    public void fieldEofResponse(byte[] header, List<byte[]> fields, byte[] eof, MySQLConnection conn) {
+    public void fieldEofResponse(byte[] header, List<byte[]> fields, byte[] eof, PhysicalConnection conn) {
         target.fieldEofResponse(header, fields, eof, conn);
     }
 
     @Override
-    public void rowResponse(byte[] row, MySQLConnection conn) {
+    public void rowResponse(byte[] row, PhysicalConnection conn) {
         target.rowResponse(row, conn);
     }
 
     @Override
-    public void rowEofResponse(byte[] eof, MySQLConnection conn) {
+    public void rowEofResponse(byte[] eof, PhysicalConnection conn) {
         target.rowEofResponse(eof, conn);
     }
 

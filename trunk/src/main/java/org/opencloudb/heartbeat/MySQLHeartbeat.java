@@ -17,18 +17,16 @@ package org.opencloudb.heartbeat;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
-import org.opencloudb.mysql.MySQLDataNode;
+import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.mysql.nio.MySQLDataSource;
-import org.opencloudb.statistic.HeartbeatRecorder;
 
 /**
  * @author mycat
  */
-public class MySQLHeartbeat {
+public class MySQLHeartbeat extends DBHeartbeat {
 	public static final int OK_STATUS = 1;
 	public static final int ERROR_STATUS = -1;
 	private static final int TIMEOUT_STATUS = -2;
@@ -37,25 +35,21 @@ public class MySQLHeartbeat {
 	private static final Logger LOGGER = Logger.getLogger(MySQLHeartbeat.class);
 
 	private final MySQLDataSource source;
-	private final AtomicBoolean isStop;
-	private final AtomicBoolean isChecking;
+
 	private final MySQLDetectorFactory factory;
-	private final HeartbeatRecorder recorder;
+
 	private final ReentrantLock lock;
 	private final int maxRetryCount;
-	private int errorCount;
-	private volatile int status;
+
 	private MySQLDetector detector;
 
 	public MySQLHeartbeat(MySQLDataSource source) {
 		this.source = source;
-		this.isStop = new AtomicBoolean(false);
-		this.isChecking = new AtomicBoolean(false);
 		this.factory = new MySQLDetectorFactory();
-		this.recorder = new HeartbeatRecorder();
 		this.lock = new ReentrantLock(false);
 		this.maxRetryCount = MAX_RETRY_COUNT;
 		this.status = INIT_STATUS;
+		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL();
 	}
 
 	public MySQLDataSource getSource() {
@@ -66,24 +60,12 @@ public class MySQLHeartbeat {
 		return detector;
 	}
 
-	public int getStatus() {
-		return status;
-	}
-
-	public int getErrorCount() {
-		return errorCount;
-	}
-
 	public long getTimeout() {
 		MySQLDetector detector = this.detector;
 		if (detector == null) {
 			return -1L;
 		}
 		return detector.getHeartbeatTimeout();
-	}
-
-	public HeartbeatRecorder getRecorder() {
-		return recorder;
 	}
 
 	public String getLastActiveTime() {
@@ -94,14 +76,6 @@ public class MySQLHeartbeat {
 		long t = Math.max(detector.lastReadTime(), detector.lastWriteTime());
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		return sdf.format(new Date(t));
-	}
-
-	public boolean isStop() {
-		return isStop.get();
-	}
-
-	public boolean isChecking() {
-		return isChecking.get();
 	}
 
 	public void start() {
@@ -226,7 +200,7 @@ public class MySQLHeartbeat {
 			this.errorCount = 0;
 			this.isChecking.set(false);
 			try {
-			
+
 				switchSource("ERROR");
 			} finally {
 				if (detector != null && isStop.get()) {
@@ -252,10 +226,13 @@ public class MySQLHeartbeat {
 	 * switch data source
 	 */
 	private void switchSource(String reason) {
-		if (!isStop.get()) {
-			MySQLDataNode node = source.getNode();
-			int i = node.next(source.getIndex());
-			node.switchSource(i, true, reason);
+		// read node can't switch ,only write node can switch
+		if (!isStop.get() && !source.isReadNode()) {
+			PhysicalDBPool pool = source.getDbPool();
+			if (pool.getSources().length > 1) {
+				int i = pool.next(pool.getActivedIndex());
+				pool.switchSource(i, true, reason);
+			}
 		}
 	}
 

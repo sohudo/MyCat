@@ -18,12 +18,12 @@ package org.opencloudb;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.opencloudb.config.model.DataSourceConfig;
+import org.opencloudb.backend.PhysicalDBNode;
+import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.config.model.QuarantineConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.config.model.UserConfig;
-import org.opencloudb.mysql.MySQLDataNode;
 import org.opencloudb.util.TimeUtil;
 
 /**
@@ -42,10 +42,10 @@ public class MycatConfig {
     private volatile Map<String, UserConfig> _users;
     private volatile Map<String, SchemaConfig> schemas;
     private volatile Map<String, SchemaConfig> _schemas;
-    private volatile Map<String, MySQLDataNode> dataNodes;
-    private volatile Map<String, MySQLDataNode> _dataNodes;
-    private volatile Map<String, DataSourceConfig> dataSources;
-    private volatile Map<String, DataSourceConfig> _dataSources;
+    private volatile Map<String, PhysicalDBNode> dataNodes;
+    private volatile Map<String, PhysicalDBNode> _dataNodes;
+    private volatile Map<String, PhysicalDBPool> dataHosts;
+    private volatile Map<String, PhysicalDBPool> _dataHosts;
     private long reloadTime;
     private long rollbackTime;
     private int status;
@@ -56,7 +56,7 @@ public class MycatConfig {
         this.system = confInit.getSystem();
         this.users = confInit.getUsers();
         this.schemas = confInit.getSchemas();
-        this.dataSources = confInit.getDataSources();
+        this.dataHosts = confInit.getDataHosts();
         this.dataNodes = confInit.getDataNodes();
         this.quarantine = confInit.getQuarantine();
         this.cluster = confInit.getCluster();
@@ -87,20 +87,20 @@ public class MycatConfig {
         return _schemas;
     }
 
-    public Map<String, MySQLDataNode> getDataNodes() {
+    public Map<String, PhysicalDBNode> getDataNodes() {
         return dataNodes;
     }
 
-    public Map<String, MySQLDataNode> getBackupDataNodes() {
+    public Map<String, PhysicalDBNode> getBackupDataNodes() {
         return _dataNodes;
     }
 
-    public Map<String, DataSourceConfig> getDataSources() {
-        return dataSources;
+    public Map<String, PhysicalDBPool> getDataHosts() {
+        return dataHosts;
     }
 
-    public Map<String, DataSourceConfig> getBackupDataSources() {
-        return _dataSources;
+    public Map<String, PhysicalDBPool> getBackupDataHosts() {
+        return _dataHosts;
     }
 
     public MycatCluster getCluster() {
@@ -132,15 +132,15 @@ public class MycatConfig {
     }
 
     public void reload(Map<String, UserConfig> users, Map<String, SchemaConfig> schemas,
-            Map<String, MySQLDataNode> dataNodes, Map<String, DataSourceConfig> dataSources, MycatCluster cluster,
+            Map<String, PhysicalDBNode> dataNodes, Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
             QuarantineConfig quarantine) {
-        apply(users, schemas, dataNodes, dataSources, cluster, quarantine);
+        apply(users, schemas, dataNodes, dataHosts, cluster, quarantine);
         this.reloadTime = TimeUtil.currentTimeMillis();
         this.status = RELOAD;
     }
 
     public boolean canRollback() {
-        if (_users == null || _schemas == null || _dataNodes == null || _dataSources == null || _cluster == null
+        if (_users == null || _schemas == null || _dataNodes == null || _dataHosts == null || _cluster == null
                 || _quarantine == null || status == ROLLBACK) {
             return false;
         } else {
@@ -149,23 +149,23 @@ public class MycatConfig {
     }
 
     public void rollback(Map<String, UserConfig> users, Map<String, SchemaConfig> schemas,
-            Map<String, MySQLDataNode> dataNodes, Map<String, DataSourceConfig> dataSources, MycatCluster cluster,
+            Map<String, PhysicalDBNode> dataNodes, Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
             QuarantineConfig quarantine) {
-        apply(users, schemas, dataNodes, dataSources, cluster, quarantine);
+        apply(users, schemas, dataNodes, dataHosts, cluster, quarantine);
         this.rollbackTime = TimeUtil.currentTimeMillis();
         this.status = ROLLBACK;
     }
 
     private void apply(Map<String, UserConfig> users, Map<String, SchemaConfig> schemas,
-            Map<String, MySQLDataNode> dataNodes, Map<String, DataSourceConfig> dataSources, MycatCluster cluster,
+            Map<String, PhysicalDBNode> dataNodes, Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
             QuarantineConfig quarantine) {
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
-            // stop mysql heartbeat
-            Map<String, MySQLDataNode> oldDataNodes = this.dataNodes;
-            if (oldDataNodes != null) {
-                for (MySQLDataNode n : oldDataNodes.values()) {
+            // stop datasource heartbeat
+            Map<String, PhysicalDBPool> oldDataHosts = this.dataHosts;
+            if (oldDataHosts != null) {
+                for (PhysicalDBPool n : oldDataHosts.values()) {
                     if (n != null) {
                         n.stopHeartbeat();
                     }
@@ -184,13 +184,13 @@ public class MycatConfig {
             this._users = this.users;
             this._schemas = this.schemas;
             this._dataNodes = this.dataNodes;
-            this._dataSources = this.dataSources;
+            this._dataHosts = this.dataHosts;
             this._cluster = this.cluster;
             this._quarantine = this.quarantine;
 
-            // start mysql heartbeat
+            // start datasoruce heartbeat
             if (dataNodes != null) {
-                for (MySQLDataNode n : dataNodes.values()) {
+                for (PhysicalDBPool n : dataHosts.values()) {
                     if (n != null) {
                         n.startHeartbeat();
                     }
@@ -208,7 +208,7 @@ public class MycatConfig {
             this.users = users;
             this.schemas = schemas;
             this.dataNodes = dataNodes;
-            this.dataSources = dataSources;
+            this.dataHosts = dataHosts;
             this.cluster = cluster;
             this.quarantine = quarantine;
         } finally {

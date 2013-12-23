@@ -26,11 +26,13 @@ import java.util.Map;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatNode;
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalDBPool;
+import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.Fields;
-import org.opencloudb.heartbeat.CobarHeartbeat;
+import org.opencloudb.heartbeat.DBHeartbeat;
+import org.opencloudb.heartbeat.MyCATHeartbeat;
 import org.opencloudb.heartbeat.MySQLHeartbeat;
 import org.opencloudb.manager.ManagerConnection;
-import org.opencloudb.mysql.MySQLDataNode;
 import org.opencloudb.mysql.PacketUtil;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
@@ -133,7 +135,7 @@ public class ShowHeartbeat {
         for (String key : cobarNodeKeys) {
             MycatNode node = cobarNodes.get(key);
             if (node != null) {
-                CobarHeartbeat hb = node.getHeartbeat();
+                MyCATHeartbeat hb = node.getHeartbeat();
                 RowDataPacket row = new RowDataPacket(FIELD_COUNT);
                 row.add(node.getName().getBytes());
                 row.add("MyCat".getBytes());
@@ -151,21 +153,18 @@ public class ShowHeartbeat {
             }
         }
 
-        // data nodes
-        Map<String, MySQLDataNode> dataNodes = conf.getDataNodes();
-        List<String> dataNodeKeys = new ArrayList<String>(dataNodes.size());
-        dataNodeKeys.addAll(dataNodes.keySet());
-        Collections.sort(dataNodeKeys, new Comparators<String>());
-        for (String key : dataNodeKeys) {
-            MySQLDataNode node = dataNodes.get(key);
-            if (node != null) {
-                MySQLHeartbeat hb = node.getHeartbeat();
+        // host nodes
+        Map<String, PhysicalDBPool> dataHosts = conf.getDataHosts();
+        for (PhysicalDBPool pool : dataHosts.values()) {
+        	 for(PhysicalDatasource ds:pool.getAllDataSources())
+        	 {
+            	DBHeartbeat hb = ds.getHeartbeat();
                 RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-                row.add(node.getName().getBytes());
-                row.add("MYSQL".getBytes());
+                row.add(ds.getName().getBytes());
+                row.add(ds.getConfig().getDbType().getBytes());
                 if (hb != null) {
-                    row.add(hb.getSource().getConfig().getHost().getBytes());
-                    row.add(IntegerUtil.toBytes(hb.getSource().getConfig().getPort()));
+                    row.add(ds.getConfig().getIp().getBytes());
+                    row.add(IntegerUtil.toBytes(ds.getConfig().getPort()));
                     row.add(IntegerUtil.toBytes(hb.getStatus()));
                     row.add(IntegerUtil.toBytes(hb.getErrorCount()));
                     row.add(hb.isChecking() ? "checking".getBytes() : "idle".getBytes());
@@ -189,19 +188,6 @@ public class ShowHeartbeat {
             }
         }
         return list;
-    }
-
-    private static final class Comparators<T> implements Comparator<String> {
-        @Override
-        public int compare(String s1, String s2) {
-            Pair<String, Integer> p1 = PairUtil.splitIndex(s1, '[', ']');
-            Pair<String, Integer> p2 = PairUtil.splitIndex(s2, '[', ']');
-            if (p1.getKey().compareTo(p2.getKey()) == 0) {
-                return p1.getValue() - p2.getValue();
-            } else {
-                return p1.getKey().compareTo(p2.getKey());
-            }
-        }
     }
 
 }

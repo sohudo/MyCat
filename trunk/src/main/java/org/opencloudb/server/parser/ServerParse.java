@@ -40,9 +40,12 @@ public final class ServerParse {
 	public static final int EXPLAIN = 15;
 	public static final int KILL_QUERY = 16;
 	public static final int HELP = 17;
+	public static final int MYSQL_CMD_COMMENT = 18;
+	public static final int MYSQL_COMMENT = 19;
 
 	public static int parse(String stmt) {
-		for (int i = 0; i < stmt.length(); ++i) {
+		int lenth=stmt.length();
+		for (int i = 0; i <lenth ; ++i) {
 			switch (stmt.charAt(i)) {
 			case ' ':
 			case '\t':
@@ -50,8 +53,17 @@ public final class ServerParse {
 			case '\n':
 				continue;
 			case '/':
+				//such as /*!40101 SET character_set_client = @saved_cs_client */;
+				if(i==0&&stmt.charAt(1)=='*'&&stmt.charAt(2)=='!'&&stmt.charAt(lenth-2)=='*'&&stmt.charAt(lenth-1)=='/')
+				{
+					return MYSQL_CMD_COMMENT;
+				}
 			case '#':
 				i = ParseUtil.comment(stmt, i);
+				if(i+1==lenth)
+				{
+					return MYSQL_COMMENT;
+				}
 				continue;
 			case 'B':
 			case 'b':

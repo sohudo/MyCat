@@ -24,7 +24,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatNode;
 import org.opencloudb.config.Alarms;
-import org.opencloudb.config.model.CobarNodeConfig;
+import org.opencloudb.config.model.MycatNodeConfig;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.statistic.HeartbeatRecorder;
 import org.opencloudb.util.TimeUtil;
@@ -32,7 +32,7 @@ import org.opencloudb.util.TimeUtil;
 /**
  * @author mycat
  */
-public class CobarHeartbeat {
+public class MyCATHeartbeat {
     public static final int OK_STATUS = 1;
     public static final int OFF_STATUS = 2;
     public static final int SEND = 3;
@@ -41,26 +41,26 @@ public class CobarHeartbeat {
     private static final int INIT_STATUS = 0;
     private static final int MAX_RETRY_COUNT = 5;
     private static final Logger ALARM = Logger.getLogger("alarm");
-    private static final Logger LOGGER = Logger.getLogger(CobarHeartbeat.class);
+    private static final Logger LOGGER = Logger.getLogger(MyCATHeartbeat.class);
     private static final Logger HEARTBEAT = Logger.getLogger("heartbeat");
 
     private final MycatNode node;
     private final AtomicBoolean isStop;
     private final AtomicBoolean isChecking;
-    private final CobarDetectorFactory factory;
+    private final MyCATDetectorFactory factory;
     private final HeartbeatRecorder recorder;
     private final ReentrantLock lock;
     private final int maxRetryCount;
     private int errorCount;
     private volatile int status;
-    private CobarDetector detector;
+    private MyCATDetector detector;
     public final AtomicLong detectCount;
 
-    public CobarHeartbeat(MycatNode node) {
+    public MyCATHeartbeat(MycatNode node) {
         this.node = node;
         this.isStop = new AtomicBoolean(false);
         this.isChecking = new AtomicBoolean(false);
-        this.factory = new CobarDetectorFactory();
+        this.factory = new MyCATDetectorFactory();
         this.recorder = new HeartbeatRecorder();
         this.lock = new ReentrantLock(false);
         this.maxRetryCount = MAX_RETRY_COUNT;
@@ -72,7 +72,7 @@ public class CobarHeartbeat {
         return node;
     }
 
-    public CobarDetector getDetector() {
+    public MyCATDetector getDetector() {
         return detector;
     }
 
@@ -85,7 +85,7 @@ public class CobarHeartbeat {
     }
 
     public long getTimeout() {
-        CobarDetector detector = this.detector;
+        MyCATDetector detector = this.detector;
         if (detector == null) {
             return -1L;
         }
@@ -97,7 +97,7 @@ public class CobarHeartbeat {
     }
 
     public String lastActiveTime() {
-        CobarDetector detector = this.detector;
+        MyCATDetector detector = this.detector;
         if (detector == null) {
             return null;
         }
@@ -132,7 +132,7 @@ public class CobarHeartbeat {
                 if (isChecking.get()) {
                     // nothing
                 } else {
-                    CobarDetector detector = this.detector;
+                    MyCATDetector detector = this.detector;
                     if (detector != null) {
                         detector.quit();
                         isChecking.set(false);
@@ -152,7 +152,7 @@ public class CobarHeartbeat {
         lock.lock();
         try {
             if (isChecking.compareAndSet(false, true)) {
-                CobarDetector detector = this.detector;
+                MyCATDetector detector = this.detector;
                 if (detector == null || detector.isQuit() || detector.isClosed()) {
                     try {
                         detector = factory.make(this);
@@ -166,7 +166,7 @@ public class CobarHeartbeat {
                     detector.heartbeat();
                 }
             } else {
-                CobarDetector detector = this.detector;
+                MyCATDetector detector = this.detector;
                 if (detector != null) {
                     if (detector.isQuit() || detector.isClosed()) {
                         isChecking.compareAndSet(true, false);
@@ -183,7 +183,7 @@ public class CobarHeartbeat {
     /**
      * 设定结果
      */
-    public void setResult(int result, CobarDetector detector, boolean isTransferError, byte[] message) {
+    public void setResult(int result, MyCATDetector detector, boolean isTransferError, byte[] message) {
         switch (result) {
         case OK_STATUS:
             setOk(detector);
@@ -213,7 +213,7 @@ public class CobarHeartbeat {
         }
     }
 
-    private void setOk(CobarDetector detector) {
+    private void setOk(MyCATDetector detector) {
         recorder.set(detector.lastReadTime() - detector.lastWriteTime());
         switch (status) {
         case TIMEOUT_STATUS:
@@ -236,7 +236,7 @@ public class CobarHeartbeat {
         }
     }
 
-    private void setOff(CobarDetector detector) {
+    private void setOff(MyCATDetector detector) {
         this.status = OFF_STATUS;
         this.errorCount = 0;
         this.isChecking.set(false);
@@ -245,7 +245,7 @@ public class CobarHeartbeat {
         }
     }
 
-    private void setError(CobarDetector detector) {
+    private void setError(MyCATDetector detector) {
         if (++errorCount < maxRetryCount) {
             this.isChecking.set(false);
             if (detector != null && isStop.get()) {
@@ -267,7 +267,7 @@ public class CobarHeartbeat {
         }
     }
 
-    private void setTimeout(CobarDetector detector) {
+    private void setTimeout(MyCATDetector detector) {
         status = TIMEOUT_STATUS;
         try {
             ALARM.error(alarmMessage("TIMEOUT"));
@@ -284,7 +284,7 @@ public class CobarHeartbeat {
      * 报警信息
      */
     private String alarmMessage(String reason) {
-        CobarNodeConfig cnc = node.getConfig();
+        MycatNodeConfig cnc = node.getConfig();
         return new StringBuilder().append(Alarms.DEFAULT).append("[name=").append(cnc.getName()).append(",host=")
                 .append(cnc.getHost()).append(",port=").append(cnc.getPort()).append(",reason=").append(reason)
                 .append(']').toString();

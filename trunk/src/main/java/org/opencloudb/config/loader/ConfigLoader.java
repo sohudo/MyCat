@@ -21,8 +21,8 @@ package org.opencloudb.config.loader;
 import java.util.Map;
 
 import org.opencloudb.config.model.ClusterConfig;
+import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.config.model.DataNodeConfig;
-import org.opencloudb.config.model.DataSourceConfig;
 import org.opencloudb.config.model.QuarantineConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
@@ -38,7 +38,7 @@ public interface ConfigLoader {
 
 	Map<String, DataNodeConfig> getDataNodes();
 
-	Map<String, DataSourceConfig> getDataSources();
+	Map<String, DataHostConfig> getDataHosts();
 
 	SystemConfig getSystemConfig();
 

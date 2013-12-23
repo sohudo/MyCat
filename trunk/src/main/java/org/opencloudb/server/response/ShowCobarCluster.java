@@ -27,7 +27,7 @@ import org.opencloudb.MycatNode;
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.Alarms;
 import org.opencloudb.config.Fields;
-import org.opencloudb.config.model.CobarNodeConfig;
+import org.opencloudb.config.model.MycatNodeConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.mysql.PacketUtil;
 import org.opencloudb.net.mysql.EOFPacket;
@@ -123,7 +123,7 @@ public class ShowCobarCluster {
     }
 
     private static RowDataPacket getRow(MycatNode node, String charset) {
-        CobarNodeConfig conf = node.getConfig();
+        MycatNodeConfig conf = node.getConfig();
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(StringUtil.encode(conf.getHost(), charset));
         row.add(IntegerUtil.toBytes(conf.getWeight()));

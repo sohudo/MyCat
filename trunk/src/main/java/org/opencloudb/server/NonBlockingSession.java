@@ -29,10 +29,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalConnection;
+import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mpp.DataMergeService;
-import org.opencloudb.mysql.MySQLDataNode;
-import org.opencloudb.mysql.nio.MySQLConnection;
 import org.opencloudb.mysql.nio.handler.CommitNodeHandler;
 import org.opencloudb.mysql.nio.handler.KillConnectionHandler;
 import org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler;
@@ -55,7 +55,7 @@ public class NonBlockingSession implements Session {
 			.getLogger(NonBlockingSession.class);
 
 	private final ServerConnection source;
-	private final ConcurrentHashMap<RouteResultsetNode, MySQLConnection> target;
+	private final ConcurrentHashMap<RouteResultsetNode, PhysicalConnection> target;
 	private final AtomicBoolean terminating;
 
 	// life-cycle: each sql execution
@@ -66,7 +66,7 @@ public class NonBlockingSession implements Session {
 
 	public NonBlockingSession(ServerConnection source) {
 		this.source = source;
-		this.target = new ConcurrentHashMap<RouteResultsetNode, MySQLConnection>(
+		this.target = new ConcurrentHashMap<RouteResultsetNode, PhysicalConnection>(
 				2, 1);
 		this.terminating = new AtomicBoolean(false);
 	}
@@ -76,7 +76,7 @@ public class NonBlockingSession implements Session {
 	 */
 	public void supressTargetChannelReadEvent() {
 		LOGGER.info("supress backend connection read event ,for front con blocked write "+source);
-		for (MySQLConnection con : target.values()) {
+		for (PhysicalConnection con : target.values()) {
 			if (!con.isSuppressReadTemporay()) {
 				con.setSuppressReadTemporay(true);
 			}
@@ -89,7 +89,7 @@ public class NonBlockingSession implements Session {
 	 */
 	public void unSupressTargetChannelReadEvent() {
 		LOGGER.info("upsupress backend connection read event ,for front con can write more "+source);
-		for (MySQLConnection con : target.values()) {
+		for (PhysicalConnection con : target.values()) {
 			if (con.isSuppressReadTemporay()) {
 				con.setSuppressReadTemporay(false);
 			}
@@ -111,11 +111,11 @@ public class NonBlockingSession implements Session {
 		return target.keySet();
 	}
 
-	public MySQLConnection getTarget(RouteResultsetNode key) {
+	public PhysicalConnection getTarget(RouteResultsetNode key) {
 		return target.get(key);
 	}
 
-	public MySQLConnection removeTarget(RouteResultsetNode key) {
+	public PhysicalConnection removeTarget(RouteResultsetNode key) {
 		return target.remove(key);
 	}
 
@@ -128,7 +128,7 @@ public class NonBlockingSession implements Session {
 
 		// 检查路由结果是否为空
 		RouteResultsetNode[] nodes = rrs.getNodes();
-		if (nodes == null || nodes.length == 0 || nodes[0].getName().equals("")) {
+		if (nodes == null || nodes.length == 0 ||nodes[0].getName()==null|| nodes[0].getName().equals("")) {
 			source.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
 					"No dataNode selected");
 			return;
@@ -222,7 +222,7 @@ public class NonBlockingSession implements Session {
 	}
 
 	public boolean closeConnection(RouteResultsetNode key) {
-		MySQLConnection conn = target.remove(key);
+		PhysicalConnection conn = target.remove(key);
 		if (conn != null) {
 			conn.close();
 			return true;
@@ -232,7 +232,7 @@ public class NonBlockingSession implements Session {
 
 	public void setConnectionRunning(RouteResultsetNode[] route) {
 		for (RouteResultsetNode rrn : route) {
-			MySQLConnection c = target.get(rrn);
+			PhysicalConnection c = target.get(rrn);
 			if (c != null) {
 				c.setRunning(true);
 			}
@@ -245,7 +245,7 @@ public class NonBlockingSession implements Session {
 
 	public void releaseConnections() {
 		for (RouteResultsetNode rrn : target.keySet()) {
-			MySQLConnection c = target.remove(rrn);
+			PhysicalConnection c = target.remove(rrn);
 			if (c != null) {
 				if (c.isRunning()) {
 					c.close();
@@ -269,8 +269,8 @@ public class NonBlockingSession implements Session {
 	/**
 	 * @return previous bound connection
 	 */
-	public MySQLConnection bindConnection(RouteResultsetNode key,
-			MySQLConnection conn) {
+	public PhysicalConnection bindConnection(RouteResultsetNode key,
+			PhysicalConnection conn) {
 		// System.out.println("bind connection "+conn+
 		// " to key "+key.getName()+" on sesion "+this);
 		return target.put(key, conn);
@@ -310,13 +310,13 @@ public class NonBlockingSession implements Session {
 	private void kill(Runnable run) {
 		boolean hooked = false;
 		AtomicInteger count = null;
-		Map<RouteResultsetNode, MySQLConnection> killees = null;
+		Map<RouteResultsetNode, PhysicalConnection> killees = null;
 		for (RouteResultsetNode node : target.keySet()) {
-			MySQLConnection c = target.get(node);
+			PhysicalConnection c = target.get(node);
 			if (c != null && c.isRunning()) {
 				if (!hooked) {
 					hooked = true;
-					killees = new HashMap<RouteResultsetNode, MySQLConnection>();
+					killees = new HashMap<RouteResultsetNode, PhysicalConnection>();
 					count = new AtomicInteger(0);
 				}
 				killees.put(node, c);
@@ -324,12 +324,12 @@ public class NonBlockingSession implements Session {
 			}
 		}
 		if (hooked) {
-			for (Entry<RouteResultsetNode, MySQLConnection> en : killees
+			for (Entry<RouteResultsetNode, PhysicalConnection> en : killees
 					.entrySet()) {
 				KillConnectionHandler kill = new KillConnectionHandler(
 						en.getValue(), this, run, count);
 				MycatConfig conf = MycatServer.getInstance().getConfig();
-				MySQLDataNode dn = conf.getDataNodes().get(
+				PhysicalDBNode dn = conf.getDataNodes().get(
 						en.getKey().getName());
 				try {
 					dn.getConnection(kill, en.getKey());
@@ -347,7 +347,7 @@ public class NonBlockingSession implements Session {
 
 	private void clearConnections(boolean pessimisticRelease) {
 		for (RouteResultsetNode node : target.keySet()) {
-			MySQLConnection c = target.remove(node);
+			PhysicalConnection c = target.remove(node);
 
 			if (c == null || c.isClosedOrQuit()) {
 				continue;

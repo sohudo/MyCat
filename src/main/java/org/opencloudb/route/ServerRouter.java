@@ -558,14 +558,23 @@ public final class ServerRouter {
 		final String upSchema = schema.toUpperCase() + ".";
 		int strtPos = 0;
 		int indx = 0;
+		boolean flag = false;
 		indx = upStmt.indexOf(upSchema, strtPos);
 		if (indx < 0) {
-			return stmt;
+			StringBuilder sb = new StringBuilder("`").append(schema.toUpperCase()).append("`.");
+			indx = upStmt.indexOf(sb.toString(), strtPos);
+			flag = true;
+			if(indx < 0){
+				return stmt;
+			}
 		}
 		StringBuilder sb = new StringBuilder();
 		while (indx > 0) {
 			sb.append(stmt.substring(strtPos, indx));
 			strtPos = indx + upSchema.length();
+			if(flag) {
+				strtPos += 2;
+			}
 			indx = upStmt.indexOf(upSchema, strtPos);
 		}
 		sb.append(stmt.substring(strtPos));

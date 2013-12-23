@@ -31,10 +31,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalConnection;
+import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
-import org.opencloudb.mysql.MySQLDataNode;
-import org.opencloudb.mysql.nio.MySQLConnection;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.OkPacket;
@@ -100,7 +100,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		ThreadPoolExecutor executor = session.getSource().getProcessor()
 				.getExecutor();
 		for (final RouteResultsetNode node : route) {
-			final MySQLConnection conn = session.getTarget(node);
+			final PhysicalConnection conn = session.getTarget(node);
 			if (conn != null) {
 				conn.setAttachment(node);
 				executor.execute(new Runnable() {
@@ -111,13 +111,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				});
 			} else {
 				MycatConfig conf = MycatServer.getInstance().getConfig();
-				MySQLDataNode dn = conf.getDataNodes().get(node.getName());
+				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
 				dn.getConnection(this, node);
 			}
 		}
 	}
 
-	private void _execute(MySQLConnection conn, RouteResultsetNode node) {
+	private void _execute(PhysicalConnection conn, RouteResultsetNode node) {
 		conn.setResponseHandler(this);
 
 		if (session.closed()) {
@@ -150,7 +150,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	}
 
 	@Override
-	public void connectionAcquired(final MySQLConnection conn) {
+	public void connectionAcquired(final PhysicalConnection conn) {
 		Object attachment = conn.getAttachment();
 		if (!(attachment instanceof RouteResultsetNode)) {
 			backendConnError(
@@ -175,13 +175,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	}
 
 	@Override
-	public void connectionError(Throwable e, MySQLConnection conn) {
+	public void connectionError(Throwable e, PhysicalConnection conn) {
 		// LOGGER.warn("connectionError "+conn+ " err:"+e);
 		backendConnError(conn, "connection err!");
 	}
 
 	@Override
-	public void errorResponse(byte[] data, MySQLConnection conn) {
+	public void errorResponse(byte[] data, PhysicalConnection conn) {
 		ErrorPacket err = new ErrorPacket();
 		err.read(data);
 		LOGGER.warn("error response from " + conn + " err "
@@ -190,7 +190,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	}
 
 	@Override
-	public void okResponse(byte[] data, MySQLConnection conn) {
+	public void okResponse(byte[] data, PhysicalConnection conn) {
 		boolean executeResponse = false;
 		try {
 			executeResponse = conn.syncAndExcute();
@@ -256,7 +256,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	}
 
 	@Override
-	public void rowEofResponse(byte[] eof, MySQLConnection conn) {
+	public void rowEofResponse(byte[] eof, PhysicalConnection conn) {
 		conn.setRunning(false);
 		ServerConnection source = session.getSource();
 		RouteResultsetNode node = null;
@@ -334,7 +334,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
-			byte[] eof, MySQLConnection conn) {
+			byte[] eof, PhysicalConnection conn) {
 		lock.lock();
 		try {
 			if (fieldsReturned) {
@@ -380,7 +380,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	}
 
 	@Override
-	public void rowResponse(byte[] row, MySQLConnection conn) {
+	public void rowResponse(byte[] row, PhysicalConnection conn) {
 		lock.lock();
 		try {
 			if (dataMergeSvr != null) {

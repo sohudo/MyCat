@@ -18,8 +18,8 @@ package org.opencloudb.response;
 import java.util.Map;
 
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.manager.ManagerConnection;
-import org.opencloudb.mysql.MySQLDataNode;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.parser.ManagerParseSwitch;
 import org.opencloudb.parser.util.Pair;
@@ -34,10 +34,10 @@ public final class SwitchDataSource {
     public static void response(String stmt, ManagerConnection c) {
         int count = 0;
         Pair<String[], Integer> pair = ManagerParseSwitch.getPair(stmt);
-        Map<String, MySQLDataNode> dns = MycatServer.getInstance().getConfig().getDataNodes();
+        Map<String, PhysicalDBPool> dns = MycatServer.getInstance().getConfig().getDataHosts();
         Integer idx = pair.getValue();
         for (String key : pair.getKey()) {
-            MySQLDataNode dn = dns.get(key);
+        	PhysicalDBPool dn = dns.get(key);
             if (dn != null) {
                 int m = dn.getActivedIndex();
                 int n = (idx == null) ? dn.next(m) : idx.intValue();

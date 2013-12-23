@@ -24,17 +24,17 @@ import org.opencloudb.net.mysql.OkPacket;
 /**
  * @author mycat
  */
-public class CobarDetectorAuthenticator implements NIOHandler {
+public class MyCATDetectorAuthenticator implements NIOHandler {
 
-    private final CobarDetector source;
+    private final MyCATDetector source;
 
-    public CobarDetectorAuthenticator(CobarDetector source) {
+    public MyCATDetectorAuthenticator(MyCATDetector source) {
         this.source = source;
     }
 
     @Override
     public void handle(byte[] data) {
-        CobarDetector source = this.source;
+        MyCATDetector source = this.source;
         HandshakePacket hsp = source.getHandshake();
         if (hsp == null) {
             // 设置握手数据包
@@ -56,7 +56,7 @@ public class CobarDetectorAuthenticator implements NIOHandler {
         } else { // 处理认证结果
             switch (data[4]) {
             case OkPacket.FIELD_COUNT:
-                source.setHandler(new CobarDetectorHandler(source));
+                source.setHandler(new MyCATDetectorHandler(source));
                 source.setAuthenticated(true);
                 source.heartbeat();// 认证成功后，发起心跳。
                 break;

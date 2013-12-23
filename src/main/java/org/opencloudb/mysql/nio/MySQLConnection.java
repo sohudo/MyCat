@@ -21,6 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.backend.PhysicalConnection;
 import org.opencloudb.config.Capabilities;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.Isolations;
@@ -36,17 +37,20 @@ import org.opencloudb.net.mysql.MySQLPacket;
 import org.opencloudb.net.mysql.QuitPacket;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.ServerConnection;
-import org.opencloudb.statistic.SQLRecord;
-import org.opencloudb.statistic.SQLRecorder;
 import org.opencloudb.util.TimeUtil;
 
 /**
  * @author mycat
  */
-public class MySQLConnection extends BackendConnection {
+public class MySQLConnection extends BackendConnection implements
+		PhysicalConnection {
 	private static final Logger LOGGER = Logger
 			.getLogger(MySQLConnection.class);
 	private static final long CLIENT_FLAGS = initClientFlags();
+	protected final AtomicBoolean isRunning = new AtomicBoolean();
+	protected long lastTime; // QS_TODO
+	protected volatile String schema="";
+	protected volatile String oldSchema;
 
 	private static long initClientFlags() {
 		int flag = 0;
@@ -122,12 +126,9 @@ public class MySQLConnection extends BackendConnection {
 	private boolean isAuthenticated;
 	private String user;
 	private String password;
-	private String schema;
 	private Object attachment;
 	private ResponseHandler respHandler;
 
-	private final AtomicBoolean isRunning;
-	private long lastTime; // QS_TODO
 	private final AtomicBoolean isQuit;
 	private volatile StatusSync statusSync;
 
@@ -135,9 +136,17 @@ public class MySQLConnection extends BackendConnection {
 		super(channel);
 		this.clientFlags = CLIENT_FLAGS;
 		this.lastTime = TimeUtil.currentTimeMillis();
-		this.isRunning = new AtomicBoolean(false);
 		this.isQuit = new AtomicBoolean(false);
 		this.autocommit = true;
+	}
+
+	public String getSchema() {
+		return this.schema;
+	}
+
+	public void setSchema(String newSchema) {
+		this.oldSchema = schema;
+		this.schema = newSchema;
 	}
 
 	public MySQLDataSource getPool() {
@@ -154,14 +163,6 @@ public class MySQLConnection extends BackendConnection {
 
 	public void setUser(String user) {
 		this.user = user;
-	}
-
-	public String getSchema() {
-		return schema;
-	}
-
-	public void setSchema(String schema) {
-		this.schema = schema;
 	}
 
 	public void setPassword(String password) {
@@ -224,14 +225,6 @@ public class MySQLConnection extends BackendConnection {
 		packet.write(this);
 	}
 
-	public long getLastTime() {
-		return lastTime;
-	}
-
-	public void setLastTime(long lastTime) {
-		this.lastTime = lastTime;
-	}
-
 	public void setRunning(boolean running) {
 		isRunning.set(running);
 	}
@@ -263,15 +256,17 @@ public class MySQLConnection extends BackendConnection {
 		packet.command = MySQLPacket.COM_QUERY;
 		packet.arg = query.getBytes(charset);
 		lastTime = TimeUtil.currentTimeMillis();
-		packet.write(this);
+		packet.write((BackendConnection) this);
 	}
 
 	private static class StatusSync {
 		private final RouteResultsetNode rrn;
 		private final MySQLConnection conn;
+		private CommandPacket schemaCmd;
 		private CommandPacket charCmd;
 		private CommandPacket isoCmd;
 		private CommandPacket acCmd;
+		private final String schema;
 		private final int charIndex;
 		private final int txIsolation;
 		private final boolean autocommit;
@@ -282,6 +277,9 @@ public class MySQLConnection extends BackendConnection {
 			this.conn = conn;
 			this.rrn = rrn;
 			this.charIndex = sc.getCharsetIndex();
+			this.schema=conn.schema;
+			this.schemaCmd = !schema.equals(conn.oldSchema) ? getChangeSchemaCommand(schema)
+					: null;
 			this.charCmd = conn.charsetIndex != charIndex ? getCharsetCommand(charIndex)
 					: null;
 			this.txIsolation = sc.getTxIsolation();
@@ -291,6 +289,7 @@ public class MySQLConnection extends BackendConnection {
 			this.acCmd = conn.autocommit != autocommit ? (autocommit ? _AUTOCOMMIT_ON
 					: _AUTOCOMMIT_OFF)
 					: null;
+
 		}
 
 		private Runnable updater;
@@ -300,7 +299,8 @@ public class MySQLConnection extends BackendConnection {
 		}
 
 		public boolean isSync() {
-			return charCmd == null && isoCmd == null && acCmd == null;
+			return schemaCmd == null && charCmd == null && isoCmd == null
+					&& acCmd == null;
 		}
 
 		public void update() {
@@ -315,6 +315,19 @@ public class MySQLConnection extends BackendConnection {
 		 */
 		public boolean sync() {
 			CommandPacket cmd;
+			if (schemaCmd != null) {
+				updater = new Runnable() {
+					@Override
+					public void run() {
+						conn.oldSchema = schema;
+					}
+				};
+				cmd = schemaCmd;
+				schemaCmd = null;
+				cmd.write((BackendConnection) conn);
+				//System.out.println("syn schema "+conn+" schema "+schema);
+				return true;
+			}
 			if (charCmd != null) {
 				updater = new Runnable() {
 					@Override
@@ -326,7 +339,8 @@ public class MySQLConnection extends BackendConnection {
 				};
 				cmd = charCmd;
 				charCmd = null;
-				cmd.write(conn);
+				cmd.write((BackendConnection) conn);
+				//System.out.println("syn charCmd "+conn);
 				return true;
 			}
 			if (isoCmd != null) {
@@ -338,7 +352,8 @@ public class MySQLConnection extends BackendConnection {
 				};
 				cmd = isoCmd;
 				isoCmd = null;
-				cmd.write(conn);
+				cmd.write((BackendConnection) conn);
+				//System.out.println("syn iso "+conn);
 				return true;
 			}
 			if (acCmd != null) {
@@ -350,7 +365,8 @@ public class MySQLConnection extends BackendConnection {
 				};
 				cmd = acCmd;
 				acCmd = null;
-				cmd.write(conn);
+				cmd.write((BackendConnection) conn);
+				//System.out.println("syn autocomit "+conn);
 				return true;
 			}
 			return false;
@@ -384,6 +400,16 @@ public class MySQLConnection extends BackendConnection {
 			CommandPacket cmd = new CommandPacket();
 			cmd.packetId = 0;
 			cmd.command = MySQLPacket.COM_QUERY;
+			cmd.arg = s.toString().getBytes();
+			return cmd;
+		}
+
+		private static CommandPacket getChangeSchemaCommand(String schema) {
+			StringBuilder s = new StringBuilder();
+			s.append(schema);
+			CommandPacket cmd = new CommandPacket();
+			cmd.packetId = 0;
+			cmd.command = MySQLPacket.COM_INIT_DB;
 			cmd.arg = s.toString().getBytes();
 			return cmd;
 		}
@@ -427,6 +453,14 @@ public class MySQLConnection extends BackendConnection {
 		sendQueryCmd(sql);
 	}
 
+	public long getLastTime() {
+		return lastTime;
+	}
+
+	public void setLastTime(long lastTime) {
+		this.lastTime = lastTime;
+	}
+
 	public void quit() {
 		if (isQuit.compareAndSet(false, true) && !isClosed()) {
 			if (isAuthenticated) {
@@ -450,11 +484,11 @@ public class MySQLConnection extends BackendConnection {
 	}
 
 	public void commit() {
-		_COMMIT.write(this);
+		_COMMIT.write((BackendConnection) this);
 	}
 
 	public void rollback() {
-		_ROLLBACK.write(this);
+		_ROLLBACK.write((BackendConnection) this);
 	}
 
 	public void release() {
@@ -515,19 +549,19 @@ public class MySQLConnection extends BackendConnection {
 	public void recordSql(String host, String schema, String stmt) {
 		final long now = TimeUtil.currentTimeMillis();
 		if (now > this.lastTime) {
-			long time = now - this.lastTime;
-			SQLRecorder sqlRecorder = this.pool.getSqlRecorder();
-			if (sqlRecorder.check(time)) {
-				SQLRecord recorder = new SQLRecord();
-				recorder.host = host;
-				recorder.schema = schema;
-				recorder.statement = stmt;
-				recorder.startTime = lastTime;
-				recorder.executeTime = time;
-				recorder.dataNode = pool.getName();
-				recorder.dataNodeIndex = pool.getIndex();
-				sqlRecorder.add(recorder);
-			}
+			// long time = now - this.lastTime;
+			// SQLRecorder sqlRecorder = this.pool.getSqlRecorder();
+			// if (sqlRecorder.check(time)) {
+			// SQLRecord recorder = new SQLRecord();
+			// recorder.host = host;
+			// recorder.schema = schema;
+			// recorder.statement = stmt;
+			// recorder.startTime = lastTime;
+			// recorder.executeTime = time;
+			// recorder.dataNode = pool.getName();
+			// recorder.dataNodeIndex = pool.getIndex();
+			// sqlRecorder.add(recorder);
+			// }
 		}
 		this.lastTime = now;
 	}

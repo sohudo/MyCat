@@ -32,7 +32,10 @@ public final class SystemConfig {
 	private static final String DEFAULT_CHARSET = "UTF-8";
 	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime()
 			.availableProcessors();
-	private static final long DEFAULT_IDLE_TIMEOUT = 8 * 3600 * 1000L;
+	public static final int DEFAULT_POOL_SIZE = 128;// 保持后端数据通道的默认最大值
+	public static final long DEFAULT_WAIT_TIMEOUT = 10 * 1000L;
+	public static final long DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000L;
+	//private static final long DEFAULT_IDLE_TIMEOUT = 8 * 3600 * 1000L;
 	private static final long DEFAULT_PROCESSOR_CHECK_PERIOD = 15 * 1000L;
 	private static final long DEFAULT_DATANODE_IDLE_CHECK_PERIOD = 60 * 1000L;
 	private static final long DEFAULT_DATANODE_HEARTBEAT_PERIOD = 10 * 1000L;
@@ -65,6 +68,7 @@ public final class SystemConfig {
 	private int txIsolation;
 	private int parserCommentVersion;
 	private int sqlRecordCount;
+	private long waitTimeout;
 
 	public SystemConfig() {
 		this.serverPort = DEFAULT_PORT;
@@ -88,6 +92,7 @@ public final class SystemConfig {
 		this.txIsolation = Isolations.REPEATED_READ;
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
+		this.waitTimeout=DEFAULT_WAIT_TIMEOUT;
 	}
 
 	public static String getHomePath()
@@ -122,6 +127,14 @@ public final class SystemConfig {
 
 	public int getManagerPort() {
 		return managerPort;
+	}
+
+	public long getWaitTimeout() {
+		return waitTimeout;
+	}
+
+	public void setWaitTimeout(long waitTimeout) {
+		this.waitTimeout = waitTimeout;
 	}
 
 	public void setManagerPort(int managerPort) {

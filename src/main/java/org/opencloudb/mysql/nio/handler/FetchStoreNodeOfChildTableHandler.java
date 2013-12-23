@@ -7,8 +7,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
-import org.opencloudb.mysql.MySQLDataNode;
-import org.opencloudb.mysql.nio.MySQLConnection;
+import org.opencloudb.backend.PhysicalConnection;
+import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
@@ -39,7 +39,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 			if (dataNode != null) {
 				return dataNode;
 			}
-			MySQLDataNode mysqlDN = conf.getDataNodes().get(dn);
+			PhysicalDBNode mysqlDN = conf.getDataNodes().get(dn);
 			try {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("execute in datanode " + dn);
@@ -69,7 +69,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	}
 
 	@Override
-	public void connectionAcquired(MySQLConnection conn) {
+	public void connectionAcquired(PhysicalConnection conn) {
 
 		conn.setResponseHandler(this);
 		try {
@@ -80,13 +80,13 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	}
 
 	@Override
-	public void connectionError(Throwable e, MySQLConnection conn) {
+	public void connectionError(Throwable e, PhysicalConnection conn) {
 		LOGGER.warn("connectionError " + e);
 
 	}
 
 	@Override
-	public void errorResponse(byte[] data, MySQLConnection conn) {
+	public void errorResponse(byte[] data, PhysicalConnection conn) {
 		ErrorPacket err = new ErrorPacket();
 		err.read(data);
 		LOGGER.warn("errorResponse " + err.errno + " "
@@ -95,7 +95,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	}
 
 	@Override
-	public void okResponse(byte[] ok, MySQLConnection conn) {
+	public void okResponse(byte[] ok, PhysicalConnection conn) {
 		LOGGER.info("okResponse ");
 		conn.setRunning(false);
 		conn.release();
@@ -104,7 +104,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
-			byte[] eof, MySQLConnection conn) {
+			byte[] eof, PhysicalConnection conn) {
 		LOGGER.info("fieldEofResponse ,fields " + fields.size());
 		for (byte[] data : fields) {
 			FieldPacket fieldPkg = new FieldPacket();
@@ -116,7 +116,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	}
 
 	@Override
-	public void rowResponse(byte[] row, MySQLConnection conn) {
+	public void rowResponse(byte[] row, PhysicalConnection conn) {
 		if (result == null) {
 
 			RowDataPacket rowDataPkg = new RowDataPacket(1);
@@ -133,13 +133,13 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	}
 
 	@Override
-	public void rowEofResponse(byte[] eof, MySQLConnection conn) {
+	public void rowEofResponse(byte[] eof, PhysicalConnection conn) {
 		LOGGER.info("rowEofResponse   ");
 		conn.setRunning(false);
 		conn.release();
 	}
 
-	private void executeException(MySQLConnection c, Throwable e) {
+	private void executeException(PhysicalConnection c, Throwable e) {
 		LOGGER.warn("executeException   " + e);
 		c.setRunning(false);
 		c.close();

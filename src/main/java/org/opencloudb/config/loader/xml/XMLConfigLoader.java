@@ -23,8 +23,8 @@ import java.util.Map;
 import org.opencloudb.config.loader.ConfigLoader;
 import org.opencloudb.config.loader.SchemaLoader;
 import org.opencloudb.config.model.ClusterConfig;
+import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.config.model.DataNodeConfig;
-import org.opencloudb.config.model.DataSourceConfig;
 import org.opencloudb.config.model.QuarantineConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
@@ -36,7 +36,7 @@ import org.opencloudb.config.model.UserConfig;
 public class XMLConfigLoader implements ConfigLoader {
 
     /** unmodifiable */
-    private final Map<String, DataSourceConfig> dataSources;
+    private final Map<String, DataHostConfig> dataHosts;
     /** unmodifiable */
     private final Map<String, DataNodeConfig> dataNodes;
     /** unmodifiable */
@@ -48,7 +48,7 @@ public class XMLConfigLoader implements ConfigLoader {
     private final ClusterConfig cluster;
 
     public XMLConfigLoader(SchemaLoader schemaLoader) {
-        this.dataSources = schemaLoader.getDataSources();
+        this.dataHosts = schemaLoader.getDataHosts();
         this.dataNodes = schemaLoader.getDataNodes();
         this.schemas = schemaLoader.getSchemas();
         schemaLoader = null;
@@ -94,8 +94,8 @@ public class XMLConfigLoader implements ConfigLoader {
     }
 
     @Override
-    public Map<String, DataSourceConfig> getDataSources() {
-        return dataSources;
+    public Map<String, DataHostConfig> getDataHosts() {
+        return dataHosts;
     }
 
     @Override

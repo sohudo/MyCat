@@ -16,26 +16,22 @@
 package org.opencloudb.response;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalDBNode;
+import org.opencloudb.backend.PhysicalDBPool;
+import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.Fields;
-import org.opencloudb.config.model.DataSourceConfig;
 import org.opencloudb.manager.ManagerConnection;
-import org.opencloudb.mysql.MySQLDataNode;
 import org.opencloudb.mysql.PacketUtil;
-import org.opencloudb.mysql.nio.MySQLDataSource;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.parser.util.Pair;
-import org.opencloudb.parser.util.PairUtil;
 import org.opencloudb.util.IntegerUtil;
 import org.opencloudb.util.StringUtil;
 
@@ -69,7 +65,7 @@ public final class ShowDataSource {
 		fields[i] = PacketUtil.getField("PORT", Fields.FIELD_TYPE_LONG);
 		fields[i++].packetId = ++packetId;
 
-		fields[i] = PacketUtil.getField("SCHEMA", Fields.FIELD_TYPE_VAR_STRING);
+		fields[i] = PacketUtil.getField("W/R", Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
 
 		eof.packetId = ++packetId;
@@ -92,22 +88,22 @@ public final class ShowDataSource {
 		// write rows
 		byte packetId = eof.packetId;
 		MycatConfig conf = MycatServer.getInstance().getConfig();
-		Map<String, DataSourceConfig> dataSources = conf.getDataSources();
-		List<String> keys = new ArrayList<String>();
+		Map<String, PhysicalDBPool> dataHosts = conf.getDataHosts();
+		List<PhysicalDatasource> dataSources = new LinkedList<PhysicalDatasource>();
 		if (null != name) {
-			MySQLDataNode dn = conf.getDataNodes().get(name);
-			if (dn != null)
-				for (MySQLDataSource ds : dn.getSources()) {
-					if (ds != null) {
-						keys.add(ds.getName());
-					}
-				}
+			PhysicalDBNode dn = conf.getDataNodes().get(name);
+			if (dn != null) {
+				dataSources.addAll(dn.getDbPool().getAllDataSources());
+			}
 		} else {
-			keys.addAll(dataSources.keySet());
+			// add all
+			for (PhysicalDBPool pool : dataHosts.values()) {
+				dataSources.addAll(pool.getAllDataSources());
+			}
 		}
-		Collections.sort(keys, new Comparators<String>());
-		for (String key : keys) {
-			RowDataPacket row = getRow(dataSources.get(key), c.getCharset());
+
+		for (PhysicalDatasource ds : dataSources) {
+			RowDataPacket row = getRow(ds, c.getCharset());
 			row.packetId = ++packetId;
 			buffer = row.write(buffer, c);
 		}
@@ -121,27 +117,14 @@ public final class ShowDataSource {
 		c.write(buffer);
 	}
 
-	private static RowDataPacket getRow(DataSourceConfig dsc, String charset) {
+	private static RowDataPacket getRow(PhysicalDatasource ds, String charset) {
 		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-		row.add(StringUtil.encode(dsc.getName(), charset));
-		row.add(StringUtil.encode(dsc.getType(), charset));
-		row.add(StringUtil.encode(dsc.getHost(), charset));
-		row.add(IntegerUtil.toBytes(dsc.getPort()));
-		row.add(StringUtil.encode(dsc.getDatabase(), charset));
+		row.add(StringUtil.encode(ds.getName(), charset));
+		row.add(StringUtil.encode(ds.getConfig().getDbType(), charset));
+		row.add(StringUtil.encode(ds.getConfig().getIp(), charset));
+		row.add(IntegerUtil.toBytes(ds.getConfig().getPort()));
+		row.add(StringUtil.encode(ds.isReadNode() ? "R" : "W", charset));
 		return row;
-	}
-
-	private static final class Comparators<T> implements Comparator<String> {
-		@Override
-		public int compare(String s1, String s2) {
-			Pair<String, Integer> p1 = PairUtil.splitIndex(s1, '[', ']');
-			Pair<String, Integer> p2 = PairUtil.splitIndex(s2, '[', ']');
-			if (p1.getKey().compareTo(p2.getKey()) == 0) {
-				return p1.getValue() - p2.getValue();
-			} else {
-				return p1.getKey().compareTo(p2.getKey());
-			}
-		}
 	}
 
 }

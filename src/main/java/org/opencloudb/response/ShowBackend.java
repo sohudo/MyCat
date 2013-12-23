@@ -19,8 +19,8 @@ import java.nio.ByteBuffer;
 
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.Fields;
-import org.opencloudb.heartbeat.CobarDetector;
-import org.opencloudb.heartbeat.CobarHeartbeat;
+import org.opencloudb.heartbeat.MyCATDetector;
+import org.opencloudb.heartbeat.MyCATHeartbeat;
 import org.opencloudb.heartbeat.MySQLDetector;
 import org.opencloudb.heartbeat.MySQLHeartbeat;
 import org.opencloudb.manager.ManagerConnection;
@@ -117,9 +117,9 @@ public class ShowBackend {
         row.add(LongUtil.toBytes(c.getNetOutBytes()));
         row.add(LongUtil.toBytes((TimeUtil.currentTimeMillis() - c.getStartupTime()) / 1000L));
         row.add(c.isClosed() ? "true".getBytes() : "false".getBytes());
-        if (c instanceof CobarDetector) {
-            CobarDetector detector = (CobarDetector) c;
-            CobarHeartbeat heartbeat = detector.getHeartbeat();
+        if (c instanceof MyCATDetector) {
+            MyCATDetector detector = (MyCATDetector) c;
+            MyCATHeartbeat heartbeat = detector.getHeartbeat();
             row.add(detector.isAuthenticated() ? "true".getBytes() : "false".getBytes());
             row.add(detector.isQuit() ? "true".getBytes() : "false".getBytes());
             row.add(heartbeat.isChecking() ? "true".getBytes() : "false".getBytes());

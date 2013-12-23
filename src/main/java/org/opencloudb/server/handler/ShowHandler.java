@@ -20,9 +20,7 @@ import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.server.parser.ServerParseShow;
 import org.opencloudb.server.response.ShowCobarCluster;
 import org.opencloudb.server.response.ShowCobarStatus;
-import org.opencloudb.server.response.ShowDataSources;
 import org.opencloudb.server.response.ShowDatabases;
-
 /**
  * @author mycat
  */
@@ -32,9 +30,6 @@ public final class ShowHandler {
         switch (ServerParseShow.parse(stmt, offset)) {
         case ServerParseShow.DATABASES:
             ShowDatabases.response(c);
-            break;
-        case ServerParseShow.DATASOURCES:
-            ShowDataSources.response(c);
             break;
         case ServerParseShow.COBAR_STATUS:
             ShowCobarStatus.response(c);

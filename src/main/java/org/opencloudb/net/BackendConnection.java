@@ -126,4 +126,11 @@ public abstract class BackendConnection extends AbstractConnection {
         // nothing
     }
 
+	@Override
+	public String toString() {
+		return "BackendConnection [id=" + id + ", host=" + host + ", port="
+				+ port + ", localPort=" + localPort + ", suppressReadTemporay="
+				+ suppressReadTemporay + "]";
+	}
+
 }

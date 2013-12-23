@@ -25,15 +25,15 @@ import org.opencloudb.net.mysql.OkPacket;
 /**
  * @author mycat
  */
-public class CobarDetectorHandler extends BackendAsyncHandler {
+public class MyCATDetectorHandler extends BackendAsyncHandler {
     private static final int RESULT_STATUS_INIT = 0;
     private static final int RESULT_STATUS_HEADER = 1;
     private static final int RESULT_STATUS_FIELD_EOF = 2;
 
-    private final CobarDetector source;
+    private final MyCATDetector source;
     private volatile int resultStatus;
 
-    public CobarDetectorHandler(CobarDetector source) {
+    public MyCATDetectorHandler(MyCATDetector source) {
         this.source = source;
         this.resultStatus = RESULT_STATUS_INIT;
     }
@@ -104,7 +104,7 @@ public class CobarDetectorHandler extends BackendAsyncHandler {
      * OK数据包处理
      */
     private void handleOkPacket(byte[] data) {
-        source.getHeartbeat().setResult(CobarHeartbeat.OK_STATUS, source, false, data);
+        source.getHeartbeat().setResult(MyCATHeartbeat.OK_STATUS, source, false, data);
     }
 
     /**
@@ -115,7 +115,7 @@ public class CobarDetectorHandler extends BackendAsyncHandler {
         err.read(data);
         switch (err.errno) {
         case ErrorCode.ER_SERVER_SHUTDOWN:
-            source.getHeartbeat().setResult(CobarHeartbeat.OFF_STATUS, source, false, err.message);
+            source.getHeartbeat().setResult(MyCATHeartbeat.OFF_STATUS, source, false, err.message);
             break;
         default:
             throw new HeartbeatException(new String(err.message));
@@ -126,7 +126,7 @@ public class CobarDetectorHandler extends BackendAsyncHandler {
      * 行数据包结束处理
      */
     private void handleRowEofPacket() {
-        source.getHeartbeat().setResult(CobarHeartbeat.OK_STATUS, source, false, null);
+        source.getHeartbeat().setResult(MyCATHeartbeat.OK_STATUS, source, false, null);
     }
 
 }

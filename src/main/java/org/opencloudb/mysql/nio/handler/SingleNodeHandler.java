@@ -18,6 +18,7 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -25,10 +26,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalConnection;
+import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.MysqlDataSetService;
 import org.opencloudb.config.ErrorCode;
-import org.opencloudb.mysql.MySQLDataNode;
-import org.opencloudb.mysql.nio.MySQLConnection;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.route.RouteResultsetNode;
@@ -122,7 +123,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 			lock.unlock();
 		}
 
-		final MySQLConnection conn = session.getTarget(node);
+		final PhysicalConnection conn = session.getTarget(node);
 		if (conn != null) {
 			conn.setAttachment(node);
 			session.getSource().getProcessor().getExecutor()
@@ -134,13 +135,13 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 					});
 		} else {
 			MycatConfig conf = MycatServer.getInstance().getConfig();
-			MySQLDataNode dn = conf.getDataNodes().get(node.getName());
+			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
 			dn.getConnection(this, null);
 		}
 	}
 
 	@Override
-	public void connectionAcquired(final MySQLConnection conn) {
+	public void connectionAcquired(final PhysicalConnection conn) {
 		conn.setRunning(true);
 		session.bindConnection(node, conn);
 		session.getSource().getProcessor().getExecutor()
@@ -152,7 +153,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 				});
 	}
 
-	private void _execute(MySQLConnection conn) {
+	private void _execute(PhysicalConnection conn) {
 		if (session.closed()) {
 			conn.setRunning(false);
 			endRunning();
@@ -163,13 +164,13 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 		try {
 			conn.execute(node, session.getSource(), session.getSource()
 					.isAutocommit());
-		} catch (UnsupportedEncodingException e1) {
+		} catch (IOException e1) {
 			executeException(conn);
 			return;
 		}
 	}
 
-	private void executeException(MySQLConnection c) {
+	private void executeException(PhysicalConnection c) {
 		c.setRunning(false);
 		endRunning();
 		session.clearConnections();
@@ -184,8 +185,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 	}
 
 	@Override
-	public void connectionError(Throwable e, MySQLConnection conn) {
-		System.out.println("connectionError:" + e.toString());
+	public void connectionError(Throwable e, PhysicalConnection conn) {
+		//System.out.println("connectionError:" + e.toString());
 		if (!session.closeConnection(node)) {
 			conn.close();
 		}
@@ -200,7 +201,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 	}
 
 	@Override
-	public void errorResponse(byte[] data, MySQLConnection conn) {
+	public void errorResponse(byte[] data, PhysicalConnection conn) {
 		//System.out.println("received errorResponse from conn:" + conn);
 
 		ErrorPacket err = new ErrorPacket();
@@ -216,10 +217,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 	}
 
 	@Override
-	public void okResponse(byte[] data, MySQLConnection conn) {
+	public void okResponse(byte[] data, PhysicalConnection conn) {
 		boolean executeResponse = false;
 		try {
 			executeResponse = conn.syncAndExcute();
+			//System.out.println("executeResponse  "+executeResponse);
 			// System.out.println("received okResponse from conn:" + conn
 			// + " response:" + executeResponse);
 		} catch (UnsupportedEncodingException e) {
@@ -247,7 +249,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 	}
 
 	@Override
-	public void rowEofResponse(byte[] eof, MySQLConnection conn) {
+	public void rowEofResponse(byte[] eof, PhysicalConnection conn) {
 		// System.out.println("received  rowEofResponse from conn:" + conn);
 		ServerConnection source = session.getSource();
 		conn.setRunning(false);
@@ -270,7 +272,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
-			byte[] eof, MySQLConnection conn) {
+			byte[] eof, PhysicalConnection conn) {
 		// System.out.println("received  fieldEofResponse from conn:" + conn);
 		lock.lock();
 		try {
@@ -295,7 +297,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 	}
 
 	@Override
-	public void rowResponse(byte[] row, MySQLConnection conn) {
+	public void rowResponse(byte[] row, PhysicalConnection conn) {
 		// System.out.println("received rowResponse from conn:" + conn);
 		lock.lock();
 		try {

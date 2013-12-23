@@ -21,7 +21,7 @@ package org.opencloudb.mysql.nio.handler;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.opencloudb.mysql.nio.MySQLConnection;
+import org.opencloudb.backend.PhysicalConnection;
 
 /**
  * @author mycat
@@ -33,37 +33,37 @@ public class RollbackReleaseHandler implements ResponseHandler {
     }
 
     @Override
-    public void connectionAcquired(MySQLConnection conn) {
+    public void connectionAcquired(PhysicalConnection conn) {
         logger.error("unexpected invocation: connectionAcquired from rollback-release");
         conn.close();
     }
 
     @Override
-    public void connectionError(Throwable e, MySQLConnection conn) {
+    public void connectionError(Throwable e, PhysicalConnection conn) {
         logger.error("unexpected invocation: connectionError from rollback-release");
         conn.close();
     }
 
     @Override
-    public void errorResponse(byte[] err, MySQLConnection conn) {
+    public void errorResponse(byte[] err, PhysicalConnection conn) {
         conn.quit();
     }
 
     @Override
-    public void okResponse(byte[] ok, MySQLConnection conn) {
+    public void okResponse(byte[] ok, PhysicalConnection conn) {
         conn.release();
     }
 
     @Override
-    public void fieldEofResponse(byte[] header, List<byte[]> fields, byte[] eof, MySQLConnection conn) {
+    public void fieldEofResponse(byte[] header, List<byte[]> fields, byte[] eof, PhysicalConnection conn) {
     }
 
     @Override
-    public void rowResponse(byte[] row, MySQLConnection conn) {
+    public void rowResponse(byte[] row, PhysicalConnection conn) {
     }
 
     @Override
-    public void rowEofResponse(byte[] eof, MySQLConnection conn) {
+    public void rowEofResponse(byte[] eof, PhysicalConnection conn) {
         logger.error("unexpected packet: EOF of resultSet from rollback-release");
         conn.close();
     }

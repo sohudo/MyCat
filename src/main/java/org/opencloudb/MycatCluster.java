@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.opencloudb.config.model.ClusterConfig;
-import org.opencloudb.config.model.CobarNodeConfig;
+import org.opencloudb.config.model.MycatNodeConfig;
 
 /**
  * @author mycat
@@ -33,7 +33,7 @@ public final class MycatCluster {
     public MycatCluster(ClusterConfig clusterConf) {
         this.nodes = new HashMap<String, MycatNode>(clusterConf.getNodes().size());
         this.groups = clusterConf.getGroups();
-        for (CobarNodeConfig conf : clusterConf.getNodes().values()) {
+        for (MycatNodeConfig conf : clusterConf.getNodes().values()) {
             String name = conf.getName();
             MycatNode node = new MycatNode(conf);
             this.nodes.put(name, node);

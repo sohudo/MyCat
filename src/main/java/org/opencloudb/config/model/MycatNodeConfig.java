@@ -19,14 +19,14 @@ package org.opencloudb.config.model;
  * @author mycat
  * @author mycat
  */
-public final class CobarNodeConfig {
+public final class MycatNodeConfig {
 
     private String name;
     private String host;
     private int port;
     private int weight;
 
-    public CobarNodeConfig(String name, String host, int port, int weight) {
+    public MycatNodeConfig(String name, String host, int port, int weight) {
         this.name = name;
         this.host = host;
         this.port = port;

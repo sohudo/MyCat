@@ -38,7 +38,7 @@ import org.w3c.dom.NodeList;
  * @author mycat
  */
 public class ClusterConfig {
-    private final Map<String, CobarNodeConfig> nodes;
+    private final Map<String, MycatNodeConfig> nodes;
     private final Map<String, List<String>> groups;
 
     public ClusterConfig(Element root, int port) {
@@ -46,7 +46,7 @@ public class ClusterConfig {
         groups = Collections.unmodifiableMap(loadGroup(root, nodes));
     }
 
-    public Map<String, CobarNodeConfig> getNodes() {
+    public Map<String, MycatNodeConfig> getNodes() {
         return nodes;
     }
 
@@ -54,8 +54,8 @@ public class ClusterConfig {
         return groups;
     }
 
-    private static Map<String, CobarNodeConfig> loadNode(Element root, int port) {
-        Map<String, CobarNodeConfig> nodes = new HashMap<String, CobarNodeConfig>();
+    private static Map<String, MycatNodeConfig> loadNode(Element root, int port) {
+        Map<String, MycatNodeConfig> nodes = new HashMap<String, MycatNodeConfig>();
         NodeList list = root.getElementsByTagName("node");
         Set<String> hostSet = new HashSet<String>();
         for (int i = 0, n = list.getLength(); i < n; i++) {
@@ -85,7 +85,7 @@ public class ClusterConfig {
                     throw new ConfigException("weight should be > 0 in host:" + host + " weight:" + weight);
                 }
 
-                CobarNodeConfig conf = new CobarNodeConfig(name, host, port, weight);
+                MycatNodeConfig conf = new MycatNodeConfig(name, host, port, weight);
                 nodes.put(name, conf);
                 hostSet.add(host);
             }
@@ -93,7 +93,7 @@ public class ClusterConfig {
         return nodes;
     }
 
-    private static Map<String, List<String>> loadGroup(Element root, Map<String, CobarNodeConfig> nodes) {
+    private static Map<String, List<String>> loadGroup(Element root, Map<String, MycatNodeConfig> nodes) {
         Map<String, List<String>> groups = new HashMap<String, List<String>>();
         NodeList list = root.getElementsByTagName("group");
         for (int i = 0, n = list.getLength(); i < n; i++) {

@@ -19,24 +19,24 @@ import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
 import org.opencloudb.MycatServer;
-import org.opencloudb.config.model.CobarNodeConfig;
+import org.opencloudb.config.model.MycatNodeConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.net.factory.BackendConnectionFactory;
 
 /**
  * @author mycat
  */
-public class CobarDetectorFactory extends BackendConnectionFactory {
+public class MyCATDetectorFactory extends BackendConnectionFactory {
 
-    public CobarDetectorFactory() {
+    public MyCATDetectorFactory() {
         this.idleTimeout = 120 * 1000L;
     }
 
-    public CobarDetector make(CobarHeartbeat heartbeat) throws IOException {
+    public MyCATDetector make(MyCATHeartbeat heartbeat) throws IOException {
         SocketChannel channel = openSocketChannel();
-        CobarNodeConfig cnc = heartbeat.getNode().getConfig();
+        MycatNodeConfig cnc = heartbeat.getNode().getConfig();
         SystemConfig sys = MycatServer.getInstance().getConfig().getSystem();
-        CobarDetector detector = new CobarDetector(channel);
+        MyCATDetector detector = new MyCATDetector(channel);
         detector.setHost(cnc.getHost());
         detector.setPort(cnc.getPort());
         detector.setUser(sys.getClusterHeartbeatUser());

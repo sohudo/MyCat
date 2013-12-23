@@ -20,6 +20,8 @@ package org.opencloudb.config.loader.xml;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,15 +30,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.opencloudb.config.loader.SchemaLoader;
+import org.opencloudb.config.model.DBHostConfig;
+import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.config.model.DataNodeConfig;
-import org.opencloudb.config.model.DataSourceConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.config.model.rule.TableRuleConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.config.util.ConfigUtil;
-import org.opencloudb.config.util.ParameterMapping;
-import org.opencloudb.util.SplitUtil;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -50,7 +51,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 	private final static String DEFAULT_XML = "/schema.xml";
 
 	private final Map<String, TableRuleConfig> tableRules;
-	private final Map<String, DataSourceConfig> dataSources;
+	private final Map<String, DataHostConfig> dataHosts;
 	private final Map<String, DataNodeConfig> dataNodes;
 	private final Map<String, SchemaConfig> schemas;
 
@@ -58,7 +59,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 		XMLRuleLoader ruleLoader = new XMLRuleLoader(ruleFile);
 		this.tableRules = ruleLoader.getTableRules();
 		ruleLoader = null;
-		this.dataSources = new HashMap<String, DataSourceConfig>();
+		this.dataHosts = new HashMap<String, DataHostConfig>();
 		this.dataNodes = new HashMap<String, DataNodeConfig>();
 		this.schemas = new HashMap<String, SchemaConfig>();
 		this.load(DEFAULT_DTD, schemaFile == null ? DEFAULT_XML : schemaFile);
@@ -74,9 +75,9 @@ public class XMLSchemaLoader implements SchemaLoader {
 	}
 
 	@Override
-	public Map<String, DataSourceConfig> getDataSources() {
-		return (Map<String, DataSourceConfig>) (dataSources.isEmpty() ? Collections
-				.emptyMap() : dataSources);
+	public Map<String, DataHostConfig> getDataHosts() {
+		return (Map<String, DataHostConfig>) (dataHosts.isEmpty() ? Collections
+				.emptyMap() : dataHosts);
 	}
 
 	@Override
@@ -99,7 +100,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			xml = XMLSchemaLoader.class.getResourceAsStream(xmlFile);
 			Element root = ConfigUtil.getDocument(dtd, xml)
 					.getDocumentElement();
-			loadDataSources(root);
+			loadDataHosts(root);
 			loadDataNodes(root);
 			loadSchemas(root);
 		} catch (ConfigException e) {
@@ -130,8 +131,8 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String name = schemaElement.getAttribute("name");
 			String dataNode = schemaElement.getAttribute("dataNode");
 			// 在非空的情况下检查dataNode是否存在
-			if (dataNode != null &&!dataNode.isEmpty() ) {
-				List<String> dataNodeLst=new ArrayList<String>(1);
+			if (dataNode != null && !dataNode.isEmpty()) {
+				List<String> dataNodeLst = new ArrayList<String>(1);
 				dataNodeLst.add(dataNode);
 				checkDataNodeExists(dataNodeLst);
 			} else {
@@ -141,8 +142,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			if (schemas.containsKey(name)) {
 				throw new ConfigException("schema " + name + " duplicated!");
 			}
-			schemas.put(name, new SchemaConfig(name, dataNode, 
-					tables));
+			schemas.put(name, new SchemaConfig(name, dataNode, tables));
 		}
 	}
 
@@ -233,146 +233,115 @@ public class XMLSchemaLoader implements SchemaLoader {
 		NodeList list = root.getElementsByTagName("dataNode");
 		for (int i = 0, n = list.getLength(); i < n; i++) {
 			Element element = (Element) list.item(i);
-			String dnNamePrefix = element.getAttribute("name");
-			List<DataNodeConfig> confList = new ArrayList<DataNodeConfig>();
-			try {
-				Element dsElement = findPropertyByName(element, "dataSource");
-				if (dsElement == null) {
-					throw new NullPointerException(
-							"dataNode xml Element with name of " + dnNamePrefix
-									+ " has no dataSource Element");
-				}
-				NodeList dataSourceList = dsElement
-						.getElementsByTagName("dataSourceRef");
-				String dataSources[][] = new String[dataSourceList.getLength()][];
-				for (int j = 0, m = dataSourceList.getLength(); j < m; ++j) {
-					Element ref = (Element) dataSourceList.item(j);
-					String dsString = ref.getTextContent();
-					dataSources[j] = SplitUtil.split(dsString, ',', '$', '-',
-							'[', ']');
-				}
-				if (dataSources.length <= 0) {
-					throw new ConfigException("no dataSourceRef defined!");
-				}
-				for (String[] dss : dataSources) {
-					if (dss.length != dataSources[0].length) {
-						throw new ConfigException(
-								"dataSource number not equals!");
-					}
-				}
-				for (int k = 0, limit = dataSources[0].length; k < limit; ++k) {
-					StringBuilder dsString = new StringBuilder();
-					for (int dsIndex = 0; dsIndex < dataSources.length; ++dsIndex) {
-						if (dsIndex > 0) {
-							dsString.append(',');
-						}
-						dsString.append(dataSources[dsIndex][k]);
-					}
-					DataNodeConfig conf = new DataNodeConfig();
-					ParameterMapping.mapping(conf,
-							ConfigUtil.loadElements(element));
-					confList.add(conf);
-					switch (k) {
-					case 0:
-						conf.setName((limit == 1) ? dnNamePrefix : dnNamePrefix
-								+ "[" + k + "]");
-						break;
-					default:
-						conf.setName(dnNamePrefix + "[" + k + "]");
-						break;
-					}
-					conf.setDataSource(dsString.toString());
-				}
-			} catch (Exception e) {
-				throw new ConfigException("dataNode " + dnNamePrefix
-						+ " define error", e);
+			String dnName = element.getAttribute("name");
+			String database = element.getAttribute("database");
+			String host = element.getAttribute("dataHost");
+			if (empty(dnName) || empty(database) || empty(host)) {
+				throw new ConfigException("dataNode " + dnName
+						+ " define error ,attribute can't be empty");
 			}
-
-			for (DataNodeConfig conf : confList) {
-				if (dataNodes.containsKey(conf.getName())) {
-					throw new ConfigException("dataNode " + conf.getName()
-							+ " duplicated!");
-				}
-				dataNodes.put(conf.getName(), conf);
+			DataNodeConfig conf = new DataNodeConfig(dnName, database, host);
+			if (dataNodes.containsKey(conf.getName())) {
+				throw new ConfigException("dataNode " + conf.getName()
+						+ " duplicated!");
 			}
+			if (!dataHosts.containsKey(host)) {
+				throw new ConfigException("dataNode " + dnName
+						+ " reference dataHost:" + host + " not exists!");
+			}
+			dataNodes.put(conf.getName(), conf);
 		}
 	}
 
-	private void loadDataSources(Element root) {
-		NodeList list = root.getElementsByTagName("dataSource");
+	private boolean empty(String dnName) {
+		return dnName == null || dnName.length() == 0;
+	}
+
+	private DBHostConfig createDBHostConf(String dataHost, Element node,
+			String dbType, String dbDriver,int maxCon,int minCon) {
+		String nodeHost = node.getAttribute("host");
+		String nodeUrl = node.getAttribute("url");
+		String user = node.getAttribute("user");
+		String password = node.getAttribute("password");
+		String ip = null;
+		int port = 0;
+		if (empty(nodeHost) || empty(nodeUrl) || empty(user)) {
+			throw new ConfigException(
+					"dataHost "
+							+ dataHost
+							+ " define error,some attributes of this element is empty: "
+							+ nodeHost);
+		}
+		if ("native".equalsIgnoreCase(dbDriver)) {
+			int colonIndex = nodeUrl.indexOf(':');
+			ip = nodeUrl.substring(0, colonIndex).trim();
+			port = Integer.parseInt(nodeUrl.substring(colonIndex + 1).trim());
+		} else {
+			URL url;
+			try {
+				url = new URL(nodeUrl);
+			} catch (MalformedURLException e) {
+				throw new ConfigException("invalid jdbc url " + nodeUrl
+						+ " of " + dataHost);
+			}
+			ip = url.getHost();
+			port = url.getPort();
+		}
+
+		DBHostConfig conf = new DBHostConfig(nodeHost, ip, port, nodeUrl, user,
+				password);
+		conf.setDbType(dbType);
+		conf.setMaxCon(maxCon);
+		conf.setMinCon(minCon);
+		return conf;
+	}
+
+	private void loadDataHosts(Element root) {
+		NodeList list = root.getElementsByTagName("dataHost");
 		for (int i = 0, n = list.getLength(); i < n; ++i) {
 			Element element = (Element) list.item(i);
-			ArrayList<DataSourceConfig> dscList = new ArrayList<DataSourceConfig>();
-			String dsNamePrefix = element.getAttribute("name");
-			try {
-				String dsType = element.getAttribute("type");
-				Element locElement = findPropertyByName(element, "location");
-				if (locElement == null) {
-					throw new NullPointerException(
-							"dataSource xml Element with name of "
-									+ dsNamePrefix + " has no location Element");
-				}
-				NodeList locationList = locElement
-						.getElementsByTagName("location");
-				int dsIndex = 0;
-				for (int j = 0, m = locationList.getLength(); j < m; ++j) {
-					String locStr = ((Element) locationList.item(j))
-							.getTextContent();
-					int colonIndex = locStr.indexOf(':');
-					int slashIndex = locStr.indexOf('/');
-					String dsHost = locStr.substring(0, colonIndex).trim();
-					int dsPort = Integer.parseInt(locStr.substring(
-							colonIndex + 1, slashIndex).trim());
-					String[] schemas = SplitUtil.split(
-							locStr.substring(slashIndex + 1).trim(), ',', '$',
-							'-');
-					for (String dsSchema : schemas) {
-						DataSourceConfig dsConf = new DataSourceConfig();
-						ParameterMapping.mapping(dsConf,
-								ConfigUtil.loadElements(element));
-						dscList.add(dsConf);
-						switch (dsIndex) {
-						case 0:
-							dsConf.setName(dsNamePrefix);
-							break;
-						case 1:
-							dscList.get(0).setName(dsNamePrefix + "[0]");
-						default:
-							dsConf.setName(dsNamePrefix + "[" + dsIndex + "]");
-						}
-						dsConf.setType(dsType);
-						dsConf.setDatabase(dsSchema);
-						dsConf.setHost(dsHost);
-						dsConf.setPort(dsPort);
-						++dsIndex;
-					}
-				}
-			} catch (Exception e) {
-				throw new ConfigException("dataSource " + dsNamePrefix
-						+ " define error", e);
+			String name = element.getAttribute("name");
+			if (dataHosts.containsKey(name)) {
+				throw new ConfigException("dataHost name " + name
+						+ "duplicated!");
 			}
-			for (DataSourceConfig dsConf : dscList) {
-				if (dataSources.containsKey(dsConf.getName())) {
-					throw new ConfigException("dataSource name "
-							+ dsConf.getName() + "duplicated!");
+			int maxCon = Integer.valueOf(element.getAttribute("maxCon"));
+			int minCon = Integer.valueOf(element.getAttribute("minCon"));
+			int balance = Integer.valueOf(element.getAttribute("balance"));
+			String dbDriver = element.getAttribute("dbDriver");
+			String dbType = element.getAttribute("dbType");
+			String heartbeatSQL = element.getElementsByTagName("heartbeat")
+					.item(0).getTextContent();
+			NodeList writeNodes = element.getElementsByTagName("writeHost");
+			DBHostConfig[] writeDbConfs = new DBHostConfig[writeNodes
+					.getLength()];
+			Map<Integer, DBHostConfig[]> readHostsMap = new HashMap<Integer, DBHostConfig[]>(
+					2);
+			for (int w = 0; w < writeDbConfs.length; w++) {
+				Element writeNode = (Element) writeNodes.item(w);
+				writeDbConfs[w] = createDBHostConf(name, writeNode, dbType,
+						dbDriver,maxCon,minCon);
+				NodeList readNodes = writeNode.getElementsByTagName("readHost");
+				DBHostConfig[] readDbConfs = new DBHostConfig[readNodes
+						.getLength()];
+				for (int r = 0; r < readDbConfs.length; r++) {
+					Element readNode = (Element) readNodes.item(r);
+					readDbConfs[r] = createDBHostConf(name, readNode, dbType,
+							dbDriver,maxCon,minCon);
 				}
-				dataSources.put(dsConf.getName(), dsConf);
-			}
-		}
-	}
+				readHostsMap.put(w, readDbConfs);
 
-	private static Element findPropertyByName(Element bean, String name) {
-		NodeList propertyList = bean.getElementsByTagName("property");
-		for (int j = 0, m = propertyList.getLength(); j < m; ++j) {
-			Node node = propertyList.item(j);
-			if (node instanceof Element) {
-				Element p = (Element) node;
-				if (name.equals(p.getAttribute("name"))) {
-					return p;
-				}
 			}
+
+			DataHostConfig hostConf = new DataHostConfig(name, dbType,
+					dbDriver, writeDbConfs, readHostsMap);
+			hostConf.setMaxCon(maxCon);
+			hostConf.setMinCon(minCon);
+			hostConf.setBalance(balance);
+			hostConf.setHearbeatSQL(heartbeatSQL);
+			dataHosts.put(hostConf.getName(), hostConf);
+
 		}
-		return null;
 	}
 
 }

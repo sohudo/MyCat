@@ -121,4 +121,5 @@ public class CommandPacket extends MySQLPacket {
         return "MySQL Command Packet";
     }
 
+	
 }

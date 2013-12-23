@@ -19,8 +19,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.manager.ManagerConnection;
-import org.opencloudb.mysql.MySQLDataNode;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.parser.ManagerParseStop;
 import org.opencloudb.parser.util.Pair;
@@ -41,14 +41,14 @@ public final class StopHeartbeat {
         Pair<String[], Integer> keys = ManagerParseStop.getPair(stmt);
         if (keys.getKey() != null && keys.getValue() != null) {
             long time = keys.getValue().intValue() * 1000L;
-            Map<String, MySQLDataNode> dns = MycatServer.getInstance().getConfig().getDataNodes();
+            Map<String, PhysicalDBPool> dns = MycatServer.getInstance().getConfig().getDataHosts();
             for (String key : keys.getKey()) {
-                MySQLDataNode dn = dns.get(key);
+            	PhysicalDBPool dn = dns.get(key);
                 if (dn != null) {
-                    dn.setHeartbeatRecoveryTime(TimeUtil.currentTimeMillis() + time);
+                    dn.getSource().setHeartbeatRecoveryTime(TimeUtil.currentTimeMillis() + time);
                     ++count;
                     StringBuilder s = new StringBuilder();
-                    s.append(dn.getName()).append(" stop heartbeat '");
+                    s.append(dn.getHostName()).append(" stop heartbeat '");
                     logger.warn(s.append(FormatUtil.formatTime(time, 3)).append("' by manager."));
                 }
             }

@@ -21,12 +21,17 @@ import org.opencloudb.server.parser.ServerParseShow;
 import org.opencloudb.server.response.ShowCobarCluster;
 import org.opencloudb.server.response.ShowCobarStatus;
 import org.opencloudb.server.response.ShowDatabases;
+import org.opencloudb.util.StringUtil;
 /**
  * @author mycat
  */
 public final class ShowHandler {
 
     public static void handle(String stmt, ServerConnection c, int offset) {
+    	
+    	// 排除 “ ` ” 符号
+    	stmt = StringUtil.replaceChars(stmt, "`", null);
+    	
         switch (ServerParseShow.parse(stmt, offset)) {
         case ServerParseShow.DATABASES:
             ShowDatabases.response(c);

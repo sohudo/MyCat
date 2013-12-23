@@ -23,7 +23,12 @@ public class TestDDLSQLAnalyser {
 		parsInf = DDLSQLAnalyser.analyse(ast);
 		Assert.assertEquals("Persons".toUpperCase(), parsInf.tableName);
 		
+//		sql = "CREATE TABLE \"Persons\" ( \"Id_P\" int,LastName varchar(255),FirstName varchar(255),Address varchar(255),City varchar(255))";
+//		ast = SQLParserDelegate.parse(sql, SQLParserDelegate.DEFAULT_CHARSET);
+//		parsInf = DDLSQLAnalyser.analyse(ast);
+//		Assert.assertEquals("Persons".toUpperCase(), parsInf.tableName);
 		
+	
 	}
 	
 }

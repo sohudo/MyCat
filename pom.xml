@@ -30,7 +30,8 @@
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>5.1.27</version>
-			<scope>test</scope>
+			<scope>test</scope>	
+				
 		</dependency>
 
 		<dependency>
@@ -43,7 +44,7 @@
 			<groupId>org.codehaus.jsr166-mirror</groupId>
 			<artifactId>jsr166y</artifactId>
 			<version>1.7.0</version>
-			<scope>test</scope>
+			<scope>test</scope>			
 		</dependency>
 	</dependencies>
 
@@ -126,6 +127,105 @@
 						</file>
 					</additionalConfig>
 				</configuration>
+			</plugin>
+			
+			<!--  -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>appassembler-maven-plugin</artifactId>
+				<version>1.4</version>
+				<configuration>
+					<configurationDirectory>conf</configurationDirectory>
+					<includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
+					<repositoryLayout>flat</repositoryLayout>
+					<useWildcardClassPath>true</useWildcardClassPath>
+
+					<daemons>
+						<daemon>
+							<id>mycat</id>
+							<mainClass>org.opencloudb.MycatStartup</mainClass>
+							<commandLineArguments>
+								<commandLineArgument>start</commandLineArgument>
+							</commandLineArguments>
+							<platforms>
+								<platform>jsw</platform>
+							</platforms>
+							<jvmSettings>
+								<!-- 启动内存配置 -->
+								<initialMemorySize>2G</initialMemorySize>
+								<maxMemorySize>2G</maxMemorySize>
+								<maxStackSize>128m</maxStackSize>
+								<systemProperties>
+                  					<systemProperty>MYCAT_HOME=.</systemProperty>
+                				</systemProperties>
+								<extraArguments>
+									<extraArgument>-server </extraArgument>
+									<extraArgument>-XX:+AggressiveOpts</extraArgument>
+									<extraArgument>-XX:MaxDirectMemorySize=2G</extraArgument>
+									<!-- 远程JMX -->
+									<extraArgument>-Dcom.sun.management.jmxremote </extraArgument>
+									<extraArgument>-Dcom.sun.management.jmxremote.port=1984</extraArgument>
+									<extraArgument>-Dcom.sun.management.jmxremote.authenticate=false </extraArgument>
+									<extraArgument>-Dcom.sun.management.jmxremote.ssl=false </extraArgument>
+								</extraArguments>
+							</jvmSettings>
+							<generatorConfigurations>
+								<generatorConfiguration>
+									<generator>jsw</generator>
+									<includes>
+										<include>linux-x86-32</include>
+										<include>linux-x86-64</include>
+										<include>linux-ppc-64</include>
+										<include>macosx-x86-universal-32</include>
+										<include>macosx-universal-32</include>
+										<include>macosx-universal-64</include>
+										<include>windows-x86-32</include>
+										<include>windows-x86-64</include>
+									</includes>
+									<configuration>
+										<property>
+											<name>configuration.directory.in.classpath.first</name>
+											<value>conf</value>
+										</property>
+										<property>
+											<name>set.default.REPO_DIR</name>
+											<value>lib</value>
+										</property>
+										<property>
+											<name>wrapper.logfile</name>
+											<value>logs/wrapper.log</value>
+										</property>
+									</configuration>
+								
+								</generatorConfiguration>
+							</generatorConfigurations>
+						</daemon>
+					</daemons>
+				</configuration>
+				<executions>
+					<execution>
+						<id>generate-jsw</id>
+						<phase>package</phase>
+						<goals>
+							<goal>generate-daemons</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptor>src/main/assembly/assembly.xml</descriptor>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

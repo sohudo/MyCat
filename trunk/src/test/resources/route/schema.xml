@@ -62,7 +62,7 @@
 	<dataNode name="dubbo_dn" dataHost="localhost1" database="db8" />
 	<dataNode name="solo1" dataHost="localhost1" database="db9" />
 	<dataHost name="localhost1" maxCon="500" minCon="10" balance="0"
-		dbType="mysql" dbDriver="native" banlance="0">
+		dbType="mysql" dbDriver="native" >
 		<heartbeat>select user()</heartbeat>
 		<!-- can have multi write hosts -->
 		<writeHost host="hostM1" url="localhost:3306" user="root"

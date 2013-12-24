@@ -9,6 +9,8 @@ import org.opencloudb.server.ServerConnection;
 
 public interface PhysicalConnection {
 
+	public boolean isFromSlaveDB();
+
 	public String getSchema();
 
 	public void setSchema(String newSchema);

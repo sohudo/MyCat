@@ -1,6 +1,7 @@
 package org.opencloudb.backend;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
@@ -21,6 +22,7 @@ public abstract class PhysicalDatasource {
 	private final int size;
 	private final DBHostConfig config;
 	private final PhysicalConnection[] items;
+	private final ArrayList<PhysicalConnection> runningItems;
 	protected int activeCount;
 	protected int idleCount;
 	protected DBHeartbeat heartbeat;
@@ -40,6 +42,32 @@ public abstract class PhysicalDatasource {
 		this.hostConfig = hostConfig;
 		heartbeat = this.createHeartBeat();
 		this.readNode = isReadNode;
+		this.runningItems = new ArrayList<PhysicalConnection>(size * 2 / 3);
+	}
+
+	public boolean isMyConnection(PhysicalConnection con) {
+		PhysicalConnection[] theItems = null;
+		ArrayList<PhysicalConnection> theRunningItems = null;
+		final ReentrantLock lock = this.lock;
+		lock.lock();
+		try {
+			theItems = this.items;
+			theRunningItems = this.runningItems;
+		} finally {
+			lock.unlock();
+		}
+
+		for (PhysicalConnection myCon : theRunningItems) {
+			if (myCon == con) {
+				return true;
+			}
+		}
+		for (PhysicalConnection myCon : theItems) {
+			if (myCon == con) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public DataHostConfig getHostConfig() {
@@ -148,13 +176,20 @@ public abstract class PhysicalDatasource {
 	}
 
 	private PhysicalConnection takeCon(int index,
-			final ResponseHandler handler, final Object attachment) {
+			final ResponseHandler handler, final Object attachment,
+			String schema) {
+
 		PhysicalConnection conn = items[index];
 		items[index] = null;
+		runningItems.add(conn);
 		--idleCount;
 		++activeCount;
+		if (schema != null) {
+			conn.setSchema(schema);
+		}
 		conn.setAttachment(attachment);
 		handler.connectionAcquired(conn);
+
 		return conn;
 	}
 
@@ -187,7 +222,7 @@ public abstract class PhysicalDatasource {
 						continue;
 					} else {
 						if (schema.equals(conn.getSchema())) {
-							return takeCon(i, handler, attachment);
+							return takeCon(i, handler, attachment, null);
 						} else if (conn.getLastTime() < oldestConTime) {
 							oldestIdleConIndx = i;
 							oldestConTime = conn.getLastTime();
@@ -196,37 +231,29 @@ public abstract class PhysicalDatasource {
 				}
 			}
 			if (oldestIdleConIndx > -1) {
-				PhysicalConnection con = takeCon(oldestIdleConIndx, handler,
-						attachment);
-				con.setSchema(schema);
-				return con;
+				return takeCon(oldestIdleConIndx, handler, attachment, schema);
 			}
-			// create connection later
-			++activeCount;
 		} finally {
 			lock.unlock();
 		}
-
+		LOGGER.info("not ilde connection in pool,create new connection for "
+				+ this.name);
 		// create connection
 		return this.createNewConnection(new DelegateResponseHandler(handler) {
-			private boolean deactived;
-
 			@Override
 			public void connectionError(Throwable e, PhysicalConnection conn) {
-				lock.lock();
-				try {
-					if (!deactived) {
-						--activeCount;
-						deactived = true;
-					}
-				} finally {
-					lock.unlock();
-				}
 				handler.connectionError(e, conn);
 			}
 
 			@Override
 			public void connectionAcquired(PhysicalConnection conn) {
+				lock.lock();
+				try {
+					++activeCount;
+					runningItems.add(conn);
+				} finally {
+					lock.unlock();
+				}
 				conn.setSchema(schema);
 				conn.setAttachment(attachment);
 				handler.connectionAcquired(conn);

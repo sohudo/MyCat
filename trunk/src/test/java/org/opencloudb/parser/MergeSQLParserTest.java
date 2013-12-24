@@ -28,7 +28,7 @@ public class MergeSQLParserTest {
 		ast = SQLParserDelegate.parse(sql, SQLParserDelegate.DEFAULT_CHARSET);
 
 		SelectSQLAnalyser.analyse(parsInf, ast);
-		RouteResultset rrs = new RouteResultset(sql);
+		RouteResultset rrs = new RouteResultset(sql,0);
 		String sql2 = SelectSQLAnalyser.analyseMergeInf(rrs, ast, true);
 		Assert.assertEquals(
 				"SELECT o.* FROM orders AS o GROUP BY o.name ORDER BY o.id, o.age DESC LIMIT 15 OFFSET 0",
@@ -41,7 +41,7 @@ public class MergeSQLParserTest {
 
 		sql = "select o.name,count(o.id) as total, max(o.mx) as maxOders,sum(MOD2(29,9)),min(o.price) from Orders o   group by name";
 		ast = SQLParserDelegate.parse(sql, SQLParserDelegate.DEFAULT_CHARSET);
-		rrs = new RouteResultset(sql);
+		rrs = new RouteResultset(sql,0);
 		SelectSQLAnalyser.analyseMergeInf(rrs, ast, false);
 		Assert.assertEquals(true, rrs.isHasAggrColumn());
 		Assert.assertEquals(2, rrs.getMergeCols().size());
@@ -50,7 +50,7 @@ public class MergeSQLParserTest {
 		// aggregate column should has alias in order to used in oder by clause
 		sql = "select  count(*)   from orders order by count(*) desc";
 		ast = SQLParserDelegate.parse(sql, SQLParserDelegate.DEFAULT_CHARSET);
-		rrs = new RouteResultset(sql);
+		rrs = new RouteResultset(sql,0);
 		SQLSyntaxErrorException e=null;
 		try
 		{
@@ -67,7 +67,7 @@ public class MergeSQLParserTest {
 		// aggregate column should has alias in order to used in oder by clause
 				sql = "select  count(*)  as total from orders order by total desc";
 		ast = SQLParserDelegate.parse(sql, SQLParserDelegate.DEFAULT_CHARSET);
-		rrs = new RouteResultset(sql);
+		rrs = new RouteResultset(sql,0);
 		SelectSQLAnalyser.analyseMergeInf(rrs, ast, false);
 		Assert.assertEquals(true, rrs.isHasAggrColumn());
 		Assert.assertEquals(Integer.valueOf(OrderCol.COL_ORDER_TYPE_DESC), rrs.getOrderByCols().get("total"));

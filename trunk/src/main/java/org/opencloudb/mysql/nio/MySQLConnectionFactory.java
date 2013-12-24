@@ -32,7 +32,7 @@ public class MySQLConnectionFactory extends BackendConnectionFactory {
 		SocketChannel channel = openSocketChannel();
 		DBHostConfig dsc = pool.getConfig();
 
-		MySQLConnection c = new MySQLConnection(channel);
+		MySQLConnection c = new MySQLConnection(channel, pool.isReadNode());
 		c.setHost(dsc.getIp());
 		c.setPort(dsc.getPort());
 		c.setUser(dsc.getUser());

@@ -20,7 +20,6 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.mysql.ByteUtil;
-import org.opencloudb.mysql.nio.handler.CommitNodeHandler;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.handler.BackendAsyncHandler;
 import org.opencloudb.net.mysql.EOFPacket;
@@ -135,6 +134,10 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	}
 
 	public void setResponseHandler(ResponseHandler responseHandler) {
+		// logger.info("set response handler "+responseHandler);
+		if (this.responseHandler != null && responseHandler != null) {
+			throw new RuntimeException("reset agani!");
+		}
 		this.responseHandler = responseHandler;
 	}
 
@@ -145,8 +148,6 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 		resultStatus = RESULT_STATUS_INIT;
 		if (responseHandler != null) {
 			responseHandler.connectionError(t, source);
-		} else {
-			t.printStackTrace();
 		}
 
 	}
@@ -169,21 +170,36 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	 * 字段数据包结束处理
 	 */
 	private void handleFieldEofPacket(byte[] data) {
-		responseHandler.fieldEofResponse(header, fields, data, source);
+		if (responseHandler != null) {
+			responseHandler.fieldEofResponse(header, fields, data, source);
+		} else {
+			logger.warn("no handler bind in this con " + this + " client:"
+					+ source);
+		}
 	}
 
 	/**
 	 * 行数据包处理
 	 */
 	private void handleRowPacket(byte[] data) {
-		responseHandler.rowResponse(data, source);
+		if (responseHandler != null) {
+			responseHandler.rowResponse(data, source);
+		} else {
+			logger.warn("no handler bind in this con " + this + " client:"
+					+ source);
+		}
 	}
 
 	/**
 	 * 行数据包结束处理
 	 */
 	private void handleRowEofPacket(byte[] data) {
-		responseHandler.rowEofResponse(data, source);
+		if (responseHandler != null) {
+			responseHandler.rowEofResponse(data, source);
+		} else {
+			logger.warn("no handler bind in this con " + this + " client:"
+					+ source);
+		}
 	}
 
 }

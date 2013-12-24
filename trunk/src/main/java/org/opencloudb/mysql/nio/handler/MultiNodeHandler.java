@@ -126,6 +126,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		}
 		isFail.set(true);
 		if (decrementCountBy(1)) {
+			session.clearConnections();
 			notifyError();
 		}
 	}

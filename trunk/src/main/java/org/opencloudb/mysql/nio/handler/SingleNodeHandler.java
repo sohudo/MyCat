@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.PhysicalConnection;
@@ -41,7 +42,8 @@ import org.opencloudb.util.StringUtil;
  * @author mycat
  */
 public class SingleNodeHandler implements ResponseHandler, Terminatable {
-
+	private static final Logger LOGGER = Logger
+			.getLogger(SingleNodeHandler.class);
 	private final RouteResultsetNode node;
 	private final NonBlockingSession session;
 	private byte packetId;
@@ -49,7 +51,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 	private ReentrantLock lock = new ReentrantLock();
 	private boolean isRunning;
 	private Runnable terminateCallBack;
-	private static final MysqlDataSetService dataSetSrv=MysqlDataSetService.getInstance();
+	private static final MysqlDataSetService dataSetSrv = MysqlDataSetService
+			.getInstance();
+
 	public SingleNodeHandler(RouteResultsetNode route,
 			NonBlockingSession session) {
 		if (route == null) {
@@ -125,6 +129,14 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 
 		final PhysicalConnection conn = session.getTarget(node);
 		if (conn != null) {
+			if (!conn.isFromSlaveDB()
+					|| node.canRunnINReadDB(session.getSource()
+							.isAutocommit())) {
+				if (LOGGER.isDebugEnabled()) {
+					LOGGER.debug("found connections in session to use "
+							+ conn + " for " + node);
+				}
+			
 			conn.setAttachment(node);
 			session.getSource().getProcessor().getExecutor()
 					.execute(new Runnable() {
@@ -133,11 +145,14 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 							_execute(conn);
 						}
 					});
-		} else {
+			return;
+		 }
+		}
 			MycatConfig conf = MycatServer.getInstance().getConfig();
 			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
-			dn.getConnection(this, null);
-		}
+			dn.getConnection(node, session.getSource().isAutocommit(), this,
+					node);
+		
 	}
 
 	@Override
@@ -186,7 +201,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 
 	@Override
 	public void connectionError(Throwable e, PhysicalConnection conn) {
-		//System.out.println("connectionError:" + e.toString());
+		// System.out.println("connectionError:" + e.toString());
 		if (!session.closeConnection(node)) {
 			conn.close();
 		}
@@ -202,7 +217,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 
 	@Override
 	public void errorResponse(byte[] data, PhysicalConnection conn) {
-		//System.out.println("received errorResponse from conn:" + conn);
+		// System.out.println("received errorResponse from conn:" + conn);
 
 		ErrorPacket err = new ErrorPacket();
 		err.read(data);
@@ -221,7 +236,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 		boolean executeResponse = false;
 		try {
 			executeResponse = conn.syncAndExcute();
-			//System.out.println("executeResponse  "+executeResponse);
+			// System.out.println("executeResponse  "+executeResponse);
 			// System.out.println("received okResponse from conn:" + conn
 			// + " response:" + executeResponse);
 		} catch (UnsupportedEncodingException e) {
@@ -289,11 +304,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 		} finally {
 			lock.unlock();
 		}
-//		if(dataSetSrv.isEnabled() )
-//		{
-//			dataSetSrv.needCache()
-//		}
-		
+		// if(dataSetSrv.isEnabled() )
+		// {
+		// dataSetSrv.needCache()
+		// }
+
 	}
 
 	@Override
@@ -310,8 +325,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 
 	@Override
 	public void writeQueueAvailable() {
-	
-		
+
 	}
 
 }

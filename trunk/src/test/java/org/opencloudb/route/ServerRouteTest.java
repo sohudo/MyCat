@@ -57,8 +57,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		RouteResultset rrs = ServerRouter.route(schema, -1, sql, null, null);
 		Assert.assertEquals(1, rrs.getNodes().length);
 		Assert.assertEquals(-1l, rrs.getLimitSize());
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("detail_dn[15]", rrs.getNodes()[0].getName());
 		Assert.assertEquals(
 				"inSErt into offer_detail (`offer_id`, gmt) values (123,now())",
@@ -77,8 +75,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		rrs = ServerRouter.route(schema, -1, sql, null, null);
 		Assert.assertEquals(1, rrs.getNodes().length);
 		Assert.assertEquals(-1l, rrs.getLimitSize());
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("detail_dn[15]", rrs.getNodes()[0].getName());
 		Assert.assertEquals(
 				"inSErt into offer_detail (offer_id, gmt) values (123,now())",
@@ -89,8 +85,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		rrs = ServerRouter.route(schema, -1, sql, null, null);
 		Assert.assertEquals(1, rrs.getNodes().length);
 		Assert.assertEquals(-1l, rrs.getLimitSize());
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("offer_dn[12]", rrs.getNodes()[0].getName());
 		Assert.assertEquals(
 				"insert into offer(group_id,offer_id,member_id)values(234,123,'abc')",
@@ -128,8 +122,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		RouteResultset rrs = ServerRouter.route(schema, -1, sql, null, null);
 		Assert.assertEquals(2, rrs.getNodes().length);
 		Assert.assertEquals(-1l, rrs.getLimitSize());
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
 		Assert.assertEquals("dn2", rrs.getNodes()[1].getName());
 
@@ -206,32 +198,18 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		}
 	}
 
-	private static interface ReplicaAsserter {
-		public void assertReplica(Integer nodeIndex, Integer replica);
-	}
-
 	private static class RouteNodeAsserter {
 		private NodeNameDeconstructor deconstructor;
 		private SQLAsserter sqlAsserter;
-		private ReplicaAsserter replicaAsserter;
-
 		public RouteNodeAsserter(NodeNameDeconstructor deconstructor,
 				SQLAsserter sqlAsserter) {
 			this.deconstructor = deconstructor;
 			this.sqlAsserter = sqlAsserter;
-			this.replicaAsserter = new ReplicaAsserter() {
-				@Override
-				public void assertReplica(Integer nodeIndex, Integer replica) {
-					Assert.assertEquals(
-							RouteResultsetNode.DEFAULT_REPLICA_INDEX, replica);
-				}
-			};
 		}
 
 		public void assertNode(RouteResultsetNode node) throws Exception {
 			int nodeIndex = deconstructor.getNodeIndex(node.getName());
 			sqlAsserter.assertSQL(node.getStatement(), nodeIndex);
-			replicaAsserter.assertReplica(nodeIndex, node.getReplicaIndex());
 		}
 	}
 
@@ -314,8 +292,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		Assert.assertEquals(-1l, rrs.getLimitSize());
 		Assert.assertEquals(128, rrs.getNodes().length);
 		for (int i = 0; i < 128; i++) {
-			Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-					rrs.getNodes()[i].getReplicaIndex());
 			Assert.assertEquals("offer_dn[" + i + "]",
 					rrs.getNodes()[i].getName());
 			Assert.assertEquals(
@@ -358,8 +334,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		sql = "select count(*) from (select * from(select max(id) from offer_detail where offer_id='123' or offer_id='234' limit 88)offer  where offer.member_id='abc' limit 60) w "
 				+ " where w.member_id ='pavarotti17' limit 99";
 		rrs = ServerRouter.route(schema, 1, sql, null, null);
-		// Assert.assertEquals(88L, rrs.getLimitSize());
-		Assert.assertEquals(0, rrs.getFlag());
 		nodeMap = getNodeMap(rrs, 2);
 		nameAsserter = new NodeNameAsserter("detail_dn[29]", "detail_dn[15]");
 		nameAsserter.assertRouteNodeNames(nodeMap.keySet());
@@ -367,8 +341,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		sql = "select * from (select * from(select max(id) from offer_detail where offer_id='123' or offer_id='234' limit 88)offer  where offer.member_id='abc' limit 60) w "
 				+ " where w.member_id ='pavarotti17' limit 99";
 		rrs = ServerRouter.route(schema, 1, sql, null, null);
-		// Assert.assertEquals(88L, rrs.getLimitSize());
-		// Assert.assertEquals(RouteResultset.MAX_FLAG, rrs.getFlag());
 		nodeMap = getNodeMap(rrs, 2);
 		nameAsserter = new NodeNameAsserter("detail_dn[29]", "detail_dn[15]");
 		nameAsserter.assertRouteNodeNames(nodeMap.keySet());
@@ -391,8 +363,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		RouteResultset rrs = ServerRouter.route(schema, 1, sql, null, null);
 		Assert.assertEquals(-1L, rrs.getLimitSize());
 		Assert.assertEquals(1, rrs.getNodes().length);
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("offer_dn[0]", rrs.getNodes()[0].getName());
 		Assert.assertEquals("desc offer", rrs.getNodes()[0].getStatement());
 
@@ -400,8 +370,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		rrs = ServerRouter.route(schema, 1, sql, null, null);
 		Assert.assertEquals(-1L, rrs.getLimitSize());
 		Assert.assertEquals(1, rrs.getNodes().length);
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("offer_dn[0]", rrs.getNodes()[0].getName());
 		Assert.assertEquals("desc offer", rrs.getNodes()[0].getStatement());
 
@@ -409,8 +377,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		rrs = ServerRouter.route(schema, 1, sql, null, null);
 		Assert.assertEquals(-1L, rrs.getLimitSize());
 		Assert.assertEquals(1, rrs.getNodes().length);
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("offer_dn[0]", rrs.getNodes()[0].getName());
 		Assert.assertEquals("desc offer col1", rrs.getNodes()[0].getStatement());
 
@@ -418,8 +384,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		rrs = ServerRouter.route(schema, ServerParse.SHOW, sql, null, null);
 		Assert.assertEquals(-1L, rrs.getLimitSize());
 		Assert.assertEquals(1, rrs.getNodes().length);
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("offer_dn[0]", rrs.getNodes()[0].getName());
 		Assert.assertEquals("SHOW FULL COLUMNS FROM offer WHERE true",
 				rrs.getNodes()[0].getStatement());
@@ -428,8 +392,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		rrs = ServerRouter.route(schema, ServerParse.SHOW, sql, null, null);
 		Assert.assertEquals(-1L, rrs.getLimitSize());
 		Assert.assertEquals(1, rrs.getNodes().length);
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("offer_dn[0]", rrs.getNodes()[0].getName());
 		Assert.assertEquals("SHOW FULL COLUMNS FROM offer WHERE true",
 				rrs.getNodes()[0].getStatement());
@@ -438,8 +400,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		rrs = ServerRouter.route(schema, ServerParse.SHOW, sql, null, null);
 		Assert.assertEquals(-1L, rrs.getLimitSize());
 		Assert.assertEquals(1, rrs.getNodes().length);
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("offer_dn[0]", rrs.getNodes()[0].getName());
 		Assert.assertEquals("SHOW INDEX  FROM offer",
 				rrs.getNodes()[0].getStatement());
@@ -552,8 +512,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		rrs = ServerRouter.route(schema, 1, sql, null, null);
 		Assert.assertEquals(1, rrs.getNodes().length);
 		Assert.assertEquals(-1l, rrs.getLimitSize());
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("offer_dn[62]", rrs.getNodes()[0].getName());
 		Assert.assertEquals(
 				"insert into offer (group_id, offer_id,MEMBER_ID, gmt) values (234,123,222,now())",
@@ -563,8 +521,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		rrs = ServerRouter.route(schema, 1, sql, null, null);
 		Assert.assertEquals(1, rrs.getNodes().length);
 		Assert.assertEquals(-1l, rrs.getLimitSize());
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals("offer_dn[62]", rrs.getNodes()[0].getName());
 		Assert.assertEquals(
 				"insert into offer (group_id, offer_id,MEMBER_ID, gmt) values (234,123,222,now())",
@@ -615,8 +571,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		sql = "SHOW TABLES from db_name like 'solo'";
 		rrs = ServerRouter.route(schema, 9, sql, null, null);
 		Assert.assertEquals(-1L, rrs.getLimitSize());
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals(1, rrs.getNodes().length);
 		Assert.assertEquals("dubbo_dn", rrs.getNodes()[0].getName());
 		Assert.assertEquals("SHOW TABLES from db_name like 'solo'",
@@ -625,8 +579,6 @@ public class ServerRouteTest extends AbstractAliasConvert {
 		sql = "desc cndb.offer";
 		rrs = ServerRouter.route(schema, 1, sql, null, null);
 		Assert.assertEquals(-1L, rrs.getLimitSize());
-		Assert.assertEquals((int) RouteResultsetNode.DEFAULT_REPLICA_INDEX,
-				rrs.getNodes()[0].getReplicaIndex());
 		Assert.assertEquals(1, rrs.getNodes().length);
 		Assert.assertEquals("dubbo_dn", rrs.getNodes()[0].getName());
 		Assert.assertEquals("desc cndb.offer", rrs.getNodes()[0].getStatement());

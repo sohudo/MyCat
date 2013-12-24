@@ -18,8 +18,8 @@
 
 <!ELEMENT schema (table*)>
 <!ATTLIST schema name NMTOKEN #REQUIRED>
+<!ATTLIST schema checkSQLschema NMTOKEN #IMPLIED>
 <!ATTLIST schema dataNode CDATA #IMPLIED>
-
 <!ELEMENT table (property*,(childTable*))>
 <!ATTLIST table name CDATA #REQUIRED>
 <!ATTLIST table dataNode CDATA #REQUIRED>
@@ -44,7 +44,7 @@
   maxCon CDATA #REQUIRED
   minCon CDATA #REQUIRED
   name NMTOKEN #REQUIRED
-  banlance CDATA #REQUIRED
+  balance CDATA #REQUIRED
   dbType CDATA #REQUIRED
   dbDriver CDATA #REQUIRED>
 

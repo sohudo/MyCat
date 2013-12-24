@@ -169,7 +169,7 @@ public class ConfigInitializer {
 			readSourcesMap.put(entry.getKey(), readSources);
 		}
 		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(), writeSources,
-				readSourcesMap);
+				readSourcesMap,conf.getBalance());
 		return pool;
 	}
 

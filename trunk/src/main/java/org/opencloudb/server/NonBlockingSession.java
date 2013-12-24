@@ -75,7 +75,8 @@ public class NonBlockingSession implements Session {
 	 * temporary supress channel read event ,because front connection is blocked
 	 */
 	public void supressTargetChannelReadEvent() {
-		LOGGER.info("supress backend connection read event ,for front con blocked write "+source);
+		LOGGER.info("supress backend connection read event ,for front con blocked write "
+				+ source);
 		for (PhysicalConnection con : target.values()) {
 			if (!con.isSuppressReadTemporay()) {
 				con.setSuppressReadTemporay(true);
@@ -88,7 +89,8 @@ public class NonBlockingSession implements Session {
 	 * blocked
 	 */
 	public void unSupressTargetChannelReadEvent() {
-		LOGGER.info("upsupress backend connection read event ,for front con can write more "+source);
+		LOGGER.info("upsupress backend connection read event ,for front con can write more "
+				+ source);
 		for (PhysicalConnection con : target.values()) {
 			if (con.isSuppressReadTemporay()) {
 				con.setSuppressReadTemporay(false);
@@ -128,7 +130,8 @@ public class NonBlockingSession implements Session {
 
 		// 检查路由结果是否为空
 		RouteResultsetNode[] nodes = rrs.getNodes();
-		if (nodes == null || nodes.length == 0 ||nodes[0].getName()==null|| nodes[0].getName().equals("")) {
+		if (nodes == null || nodes.length == 0 || nodes[0].getName() == null
+				|| nodes[0].getName().equals("")) {
 			source.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
 					"No dataNode selected");
 			return;
@@ -144,9 +147,6 @@ public class NonBlockingSession implements Session {
 			}
 		} else {
 			boolean autocommit = source.isAutocommit();
-			if (autocommit && isModifySQL(type)) {
-				autocommit = false;
-			}
 			DataMergeService dataMergeSvr = null;
 			if (ServerParse.SELECT == type && rrs.needMerge()) {
 				dataMergeSvr = new DataMergeService(rrs);
@@ -188,7 +188,6 @@ public class NonBlockingSession implements Session {
 
 	@Override
 	public void cancel(FrontendConnection sponsor) {
-		// TODO Auto-generated method stub
 
 	}
 
@@ -230,39 +229,44 @@ public class NonBlockingSession implements Session {
 		return false;
 	}
 
-	public void setConnectionRunning(RouteResultsetNode[] route) {
-		for (RouteResultsetNode rrn : route) {
-			PhysicalConnection c = target.get(rrn);
-			if (c != null) {
-				c.setRunning(true);
-			}
-		}
-	}
-
 	public void clearConnections() {
 		clearConnections(true);
 	}
 
-	public void releaseConnections() {
-		for (RouteResultsetNode rrn : target.keySet()) {
-			PhysicalConnection c = target.remove(rrn);
-			if (c != null) {
-				if (c.isRunning()) {
-					c.close();
-					try {
-						throw new IllegalStateException(
-								"running connection is found: " + c);
-					} catch (Exception e) {
-						LOGGER.error(e.getMessage(), e);
-					}
-				} else if (!c.isClosedOrQuit()) {
-					if (source.isClosed()) {
-						c.quit();
-					} else {
-						c.release();
-					}
+	public void releaseConnection(RouteResultsetNode rrn,boolean debug) {
+		
+		PhysicalConnection c = target.remove(rrn);
+		if (c != null) {
+			if(debug)
+			{
+				LOGGER.debug("relase connection "+c);
+			}
+			if(c.getAttachment()!=null)
+			{
+				c.setAttachment(null);
+			}
+			if (c.isRunning()) {
+				c.close();
+				try {
+					throw new IllegalStateException(
+							"running connection is found: " + c);
+				} catch (Exception e) {
+					LOGGER.error(e.getMessage(), e);
+				}
+			} else if (!c.isClosedOrQuit()) {
+				if (source.isClosed()) {
+					c.quit();
+				} else {
+					c.release();
 				}
 			}
+		}
+	}
+
+	public void releaseConnections() {
+		boolean debug=LOGGER.isDebugEnabled();
+		for (RouteResultsetNode rrn : target.keySet()) {
+			releaseConnection(rrn,debug);
 		}
 	}
 
@@ -332,7 +336,8 @@ public class NonBlockingSession implements Session {
 				PhysicalDBNode dn = conf.getDataNodes().get(
 						en.getKey().getName());
 				try {
-					dn.getConnection(kill, en.getKey());
+					dn.getConnectionFromSameSource(en.getValue(), kill,
+							en.getKey());
 				} catch (Exception e) {
 					LOGGER.error(
 							"get killer connection failed for " + en.getKey(),
@@ -372,18 +377,6 @@ public class NonBlockingSession implements Session {
 
 	public boolean closed() {
 		return source.isClosed();
-	}
-
-	private static boolean isModifySQL(int type) {
-		switch (type) {
-		case ServerParse.INSERT:
-		case ServerParse.DELETE:
-		case ServerParse.UPDATE:
-		case ServerParse.REPLACE:
-			return true;
-		default:
-			return false;
-		}
 	}
 
 }

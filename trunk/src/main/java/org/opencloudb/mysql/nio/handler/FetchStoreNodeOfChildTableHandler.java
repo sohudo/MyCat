@@ -12,7 +12,9 @@ import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
+import org.opencloudb.server.parser.ServerParse;
 
 /**
  * by wuzh fetch store node of child table ,use sql as following select id from
@@ -44,7 +46,8 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("execute in datanode " + dn);
 				}
-				mysqlDN.getConnection(this, dn);
+				mysqlDN.getConnection(new RouteResultsetNode(dn,
+						ServerParse.SELECT, sql),false, this, dn);
 			} catch (Exception e) {
 				LOGGER.warn("get connection err " + e);
 			}
@@ -149,7 +152,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	@Override
 	public void writeQueueAvailable() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }

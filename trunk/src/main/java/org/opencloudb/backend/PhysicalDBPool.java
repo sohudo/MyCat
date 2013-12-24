@@ -1,17 +1,24 @@
 package org.opencloudb.backend;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.config.Alarms;
+import org.opencloudb.heartbeat.DBHeartbeat;
 import org.opencloudb.mysql.nio.handler.GetConnectionHandler;
+import org.opencloudb.mysql.nio.handler.ResponseHandler;
 
 public class PhysicalDBPool {
+	private static final int BALANCE_NONE = 0;
+	private static final int BALANCE_ALL_BACK = 1;
+	private static final int BALANCE_ALL = 2;
 	protected static final Logger LOGGER = Logger
 			.getLogger(PhysicalDBPool.class);
 	private final String hostName;
@@ -21,11 +28,14 @@ public class PhysicalDBPool {
 	protected volatile boolean initSuccess;
 	protected final ReentrantLock switchLock = new ReentrantLock();
 	private final Collection<PhysicalDatasource> allDs;
+	private final int banlance;
+	private final Random random = new Random();
 
 	public PhysicalDBPool(String name, PhysicalDatasource[] writeSources,
-			Map<Integer, PhysicalDatasource[]> readSources) {
+			Map<Integer, PhysicalDatasource[]> readSources, int balance) {
 		this.hostName = name;
 		this.sources = writeSources;
+		this.banlance = balance;
 		Iterator<Map.Entry<Integer, PhysicalDatasource[]>> entryItor = readSources
 				.entrySet().iterator();
 		while (entryItor.hasNext()) {
@@ -45,6 +55,16 @@ public class PhysicalDBPool {
 		for (PhysicalDatasource ds : this.allDs) {
 			ds.setDbPool(this);
 		}
+	}
+
+	public PhysicalDatasource findDatasouce(PhysicalConnection exitsCon) {
+		for (PhysicalDatasource ds : this.allDs) {
+			if (ds.isMyConnection(exitsCon)) {
+				return ds;
+			}
+		}
+		LOGGER.warn("can't find connection in pool " + this.hostName+ " con:"+exitsCon);
+		return null;
 	}
 
 	public String getHostName() {
@@ -195,7 +215,7 @@ public class PhysicalDBPool {
 			return;
 		}
 
-		for (PhysicalDatasource source : this.getAllDataSources()) {
+		for (PhysicalDatasource source : this.allDs) {
 			// 准备执行心跳检测
 			if (source != null) {
 				source.doHeartbeat();
@@ -263,4 +283,104 @@ public class PhysicalDBPool {
 	public Collection<PhysicalDatasource> getAllDataSources() {
 		return this.allDs;
 	}
+
+	private ArrayList<PhysicalDatasource> getAllActiveSlaveSources() {
+		ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(
+				this.allDs.size());
+		for (PhysicalDatasource[] readsources : this.readSources.values()) {
+			for (PhysicalDatasource read : readsources) {
+				if (isAlive(read)) {
+					okSources.add(read);
+				}
+			}
+		}
+		return okSources;
+	}
+
+	/**
+	 * return connection for read balance
+	 * 
+	 * @param handler
+	 * @param attachment
+	 * @param database
+	 * @throws Exception
+	 */
+	public void getRWBanlanceCon(ResponseHandler handler, Object attachment,
+			String database) throws Exception {
+		PhysicalDatasource theNode = null;
+		ArrayList<PhysicalDatasource> okSources = null;
+		switch (banlance) {
+		case BALANCE_ALL_BACK: {// all read nodes and the standard by masters
+			if (sources[this.activedIndex].heartbeat.getStatus() == DBHeartbeat.OK_STATUS) {// cur
+				okSources = getAllActiveSlaveSources();
+			} else {// at least one master alive
+				okSources = getAllActiveRWSources(false);
+			}
+			theNode = randomSelect(okSources);
+			break;
+		}
+		case BALANCE_ALL: {
+			okSources = getAllActiveRWSources(true);
+			theNode = randomSelect(okSources);
+			break;
+		}
+		case BALANCE_NONE:
+		default:
+			// return default write data source
+			theNode = this.getSource();
+		}
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("select read source " + theNode.getName()
+					+ " for dataHost:" + this.getHostName());
+		}
+		theNode.getConnection(handler, attachment, database);
+	}
+
+	private PhysicalDatasource randomSelect(
+			ArrayList<PhysicalDatasource> okSources) {
+		if (okSources.isEmpty()) {
+			return this.getSource();
+		} else {
+			int index = Math.abs(random.nextInt()) % okSources.size();
+			return okSources.get(index);
+		}
+
+	}
+
+	private boolean isAlive(PhysicalDatasource theSource) {
+		return (theSource.getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS);
+	}
+
+	/**
+	 * return all backup write sources
+	 * 
+	 * @return
+	 */
+	private ArrayList<PhysicalDatasource> getAllActiveRWSources(
+			boolean includeCurWriteNode) {
+		int curActive = activedIndex;
+		ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(
+				this.readSources.size() - 1);
+		for (int i = 0; i < this.sources.length; i++) {
+			if (i == curActive && includeCurWriteNode == false) {
+				// not include cur active source
+			} else {
+				okSources.add(sources[i]);
+			}
+			if (isAlive(sources[i])) {// write node is active
+				// check all slave nodes
+				PhysicalDatasource[] allSlaves = this.readSources.get(i);
+				if (allSlaves != null) {
+					for (PhysicalDatasource slave : allSlaves) {
+						if (isAlive(slave)) {
+							okSources.add(slave);
+						}
+					}
+				}
+			}
+
+		}
+		return okSources;
+	}
+
 }

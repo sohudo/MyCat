@@ -27,10 +27,7 @@ import org.opencloudb.mysql.nio.MySQLDataSource;
  * @author mycat
  */
 public class MySQLHeartbeat extends DBHeartbeat {
-	public static final int OK_STATUS = 1;
-	public static final int ERROR_STATUS = -1;
-	private static final int TIMEOUT_STATUS = -2;
-	private static final int INIT_STATUS = 0;
+
 	private static final int MAX_RETRY_COUNT = 5;
 	private static final Logger LOGGER = Logger.getLogger(MySQLHeartbeat.class);
 
@@ -167,8 +164,8 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	private void setOk(MySQLDetector detector) {
 		recorder.set(detector.lastReadTime() - detector.lastWriteTime());
 		switch (status) {
-		case TIMEOUT_STATUS:
-			this.status = INIT_STATUS;
+		case DBHeartbeat.TIMEOUT_STATUS:
+			this.status = DBHeartbeat.INIT_STATUS;
 			this.errorCount = 0;
 			this.isChecking.set(false);
 			if (isStop.get()) {
@@ -211,7 +208,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	}
 
 	private void setTimeout(MySQLDetector detector) {
-		status = TIMEOUT_STATUS;
+		status = DBHeartbeat.TIMEOUT_STATUS;
 		if (++errorCount >= MAX_RETRY_COUNT) {
 			try {
 				switchSource("TIMEOUT");

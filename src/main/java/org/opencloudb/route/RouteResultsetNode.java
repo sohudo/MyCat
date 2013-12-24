@@ -15,24 +15,28 @@
  */
 package org.opencloudb.route;
 
+import org.opencloudb.server.parser.ServerParse;
+
 /**
  * @author mycat
  */
 public final class RouteResultsetNode {
-	public final static Integer DEFAULT_REPLICA_INDEX = -1;
-
 	private final String name; // 数据节点名称
-	private final int replicaIndex;// 数据源编号
 	private final String statement; // 执行的语句
+	private final int sqlType;
+	private final boolean canRunInReadDB;
+	private final boolean hasBlanceFlag;
 
-	public RouteResultsetNode(String name, String statement) {
-		this(name, DEFAULT_REPLICA_INDEX, statement);
+	public RouteResultsetNode(String name, int sqlType, String statement) {
+		this.name = name;
+		this.sqlType = sqlType;
+		this.statement = statement;
+		canRunInReadDB = (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW);
+		hasBlanceFlag = statement.startsWith("/*balance*/");
 	}
 
-	public RouteResultsetNode(String name, int index, String statement) {
-		this.name = name;
-		this.replicaIndex = index;
-		this.statement = statement;
+	public boolean canRunnINReadDB(boolean autocommit) {
+		return canRunInReadDB && (autocommit || hasBlanceFlag);
 
 	}
 
@@ -40,8 +44,8 @@ public final class RouteResultsetNode {
 		return name;
 	}
 
-	public int getReplicaIndex() {
-		return replicaIndex;
+	public int getSqlType() {
+		return sqlType;
 	}
 
 	public String getStatement() {
@@ -59,8 +63,7 @@ public final class RouteResultsetNode {
 			return true;
 		if (obj instanceof RouteResultsetNode) {
 			RouteResultsetNode rrn = (RouteResultsetNode) obj;
-			if (replicaIndex == rrn.getReplicaIndex()
-					&& equals(name, rrn.getName())) {
+			if (equals(name, rrn.getName())) {
 				return true;
 			}
 		}
@@ -70,12 +73,7 @@ public final class RouteResultsetNode {
 	@Override
 	public String toString() {
 		StringBuilder s = new StringBuilder();
-		s.append(name).append('.');
-		if (replicaIndex < 0) {
-			s.append("default");
-		} else {
-			s.append(replicaIndex);
-		}
+		s.append(name);
 		s.append('{').append(statement).append('}');
 		return s.toString();
 	}

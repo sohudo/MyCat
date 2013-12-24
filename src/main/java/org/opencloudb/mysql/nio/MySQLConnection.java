@@ -49,7 +49,7 @@ public class MySQLConnection extends BackendConnection implements
 	private static final long CLIENT_FLAGS = initClientFlags();
 	protected final AtomicBoolean isRunning = new AtomicBoolean();
 	protected long lastTime; // QS_TODO
-	protected volatile String schema="";
+	protected volatile String schema = "";
 	protected volatile String oldSchema;
 
 	private static long initClientFlags() {
@@ -116,6 +116,7 @@ public class MySQLConnection extends BackendConnection implements
 	}
 
 	private MySQLDataSource pool;
+	private boolean fromSlaveDB;
 	private long threadId;
 	private HandshakePacket handshake;
 	private int charsetIndex;
@@ -132,12 +133,13 @@ public class MySQLConnection extends BackendConnection implements
 	private final AtomicBoolean isQuit;
 	private volatile StatusSync statusSync;
 
-	public MySQLConnection(SocketChannel channel) {
+	public MySQLConnection(SocketChannel channel, boolean fromSlaveDB) {
 		super(channel);
 		this.clientFlags = CLIENT_FLAGS;
 		this.lastTime = TimeUtil.currentTimeMillis();
 		this.isQuit = new AtomicBoolean(false);
 		this.autocommit = true;
+		this.fromSlaveDB = fromSlaveDB;
 	}
 
 	public String getSchema() {
@@ -277,7 +279,7 @@ public class MySQLConnection extends BackendConnection implements
 			this.conn = conn;
 			this.rrn = rrn;
 			this.charIndex = sc.getCharsetIndex();
-			this.schema=conn.schema;
+			this.schema = conn.schema;
 			this.schemaCmd = !schema.equals(conn.oldSchema) ? getChangeSchemaCommand(schema)
 					: null;
 			this.charCmd = conn.charsetIndex != charIndex ? getCharsetCommand(charIndex)
@@ -325,7 +327,7 @@ public class MySQLConnection extends BackendConnection implements
 				cmd = schemaCmd;
 				schemaCmd = null;
 				cmd.write((BackendConnection) conn);
-				//System.out.println("syn schema "+conn+" schema "+schema);
+				// System.out.println("syn schema "+conn+" schema "+schema);
 				return true;
 			}
 			if (charCmd != null) {
@@ -340,7 +342,7 @@ public class MySQLConnection extends BackendConnection implements
 				cmd = charCmd;
 				charCmd = null;
 				cmd.write((BackendConnection) conn);
-				//System.out.println("syn charCmd "+conn);
+				// System.out.println("syn charCmd "+conn);
 				return true;
 			}
 			if (isoCmd != null) {
@@ -353,7 +355,7 @@ public class MySQLConnection extends BackendConnection implements
 				cmd = isoCmd;
 				isoCmd = null;
 				cmd.write((BackendConnection) conn);
-				//System.out.println("syn iso "+conn);
+				// System.out.println("syn iso "+conn);
 				return true;
 			}
 			if (acCmd != null) {
@@ -366,7 +368,7 @@ public class MySQLConnection extends BackendConnection implements
 				cmd = acCmd;
 				acCmd = null;
 				cmd.write((BackendConnection) conn);
-				//System.out.println("syn autocomit "+conn);
+				// System.out.println("syn autocomit "+conn);
 				return true;
 			}
 			return false;
@@ -584,6 +586,11 @@ public class MySQLConnection extends BackendConnection implements
 		System.arraycopy(hs.seed, 0, seed, 0, sl1);
 		System.arraycopy(hs.restOfScrambleBuff, 0, seed, sl1, sl2);
 		return SecurityUtil.scramble411(passwd, seed);
+	}
+
+	@Override
+	public boolean isFromSlaveDB() {
+		return fromSlaveDB;
 	}
 
 }

@@ -2,6 +2,7 @@ package org.opencloudb.backend;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
+import org.opencloudb.route.RouteResultsetNode;
 
 public class PhysicalDBNode {
 	protected static final Logger LOGGER = Logger
@@ -39,10 +40,34 @@ public class PhysicalDBNode {
 		return dbPool.isInitSuccess();
 	}
 
-	public void getConnection(ResponseHandler handler, Object attachment)
-			throws Exception {
+	/**
+	 * get connection from the same datasource
+	 * 
+	 * @param exitsCon
+	 * @throws Exception
+	 */
+	public void getConnectionFromSameSource(PhysicalConnection exitsCon,
+			ResponseHandler handler, Object attachment) throws Exception {
+		PhysicalDatasource ds = this.dbPool.findDatasouce(exitsCon);
+		if (ds == null) {
+			throw new RuntimeException(
+					"can't find exits connection,maybe fininshed " + exitsCon);
+		} else {
+			ds.getConnection(handler, attachment, this.database);
+		}
+
+	}
+
+	public void getConnection(RouteResultsetNode rrs, boolean autocommit,
+			ResponseHandler handler, Object attachment) throws Exception {
 		if (dbPool.isInitSuccess()) {
-			dbPool.getSource().getConnection(handler, attachment,this.database);
+			if (rrs.canRunnINReadDB(autocommit)) {
+				dbPool.getRWBanlanceCon(handler, attachment, this.database);
+			} else {
+				dbPool.getSource().getConnection(handler, attachment,
+						this.database);
+			}
+
 			executeCount++;
 		} else {
 			throw new IllegalArgumentException("Invalid DataSource:"

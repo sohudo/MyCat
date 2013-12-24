@@ -52,10 +52,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 	private final RouteResultsetNode[] route;
 	private final NonBlockingSession session;
-	private final boolean autocommit;
-	private final CommitNodeHandler icHandler;
+	// private final CommitNodeHandler icHandler;
 	private final DataMergeService dataMergeSvr;
 	private volatile boolean mergeOutputed;
+	private final boolean autocommit;
 
 	public MultiNodeQueryHandler(RouteResultsetNode[] route,
 			boolean autocommit, NonBlockingSession session,
@@ -64,11 +64,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		if (route == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
+		this.autocommit = session.getSource().isAutocommit();
 		this.session = session;
 		this.route = route;
-		this.autocommit = autocommit;
 		this.lock = new ReentrantLock();
-		this.icHandler = new CommitNodeHandler(session);
+		// this.icHandler = new CommitNodeHandler(session);
 		this.dataMergeSvr = dataMergeSvr;
 	}
 
@@ -96,35 +96,41 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			recycleResources();
 			return;
 		}
-		session.setConnectionRunning(route);
+
 		ThreadPoolExecutor executor = session.getSource().getProcessor()
 				.getExecutor();
 		for (final RouteResultsetNode node : route) {
 			final PhysicalConnection conn = session.getTarget(node);
 			if (conn != null) {
-				conn.setAttachment(node);
-				executor.execute(new Runnable() {
-					@Override
-					public void run() {
-						_execute(conn, node);
+				if (!conn.isFromSlaveDB() || node.canRunnINReadDB(autocommit)) {
+					if (LOGGER.isDebugEnabled()) {
+						LOGGER.debug("found connections in session to use "
+								+ conn + " for " + node);
 					}
-				});
-			} else {
-				MycatConfig conf = MycatServer.getInstance().getConfig();
-				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
-				dn.getConnection(this, node);
+					conn.setAttachment(node);
+					executor.execute(new Runnable() {
+						@Override
+						public void run() {
+							_execute(conn, node);
+						}
+					});
+					continue;
+				}
 			}
+			MycatConfig conf = MycatServer.getInstance().getConfig();
+			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
+			dn.getConnection(node, autocommit, this, node);
+
 		}
 	}
 
 	private void _execute(PhysicalConnection conn, RouteResultsetNode node) {
 		conn.setResponseHandler(this);
-
+		conn.setRunning(true);
 		if (session.closed()) {
 			backendConnError(conn, "failed or cancelled by other thread");
 			return;
 		}
-
 		try {
 			conn.execute(node, session.getSource(), autocommit);
 		} catch (IOException e) {
@@ -134,6 +140,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 	@Override
 	protected void recycleResources() {
+		if (dataMergeSvr != null) {
+			dataMergeSvr.clear();
+		}
+
 		ByteBuffer buf;
 		lock.lock();
 		try {
@@ -147,6 +157,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		if (buf != null) {
 			session.getSource().recycle(buf);
 		}
+
 	}
 
 	@Override
@@ -163,7 +174,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			return;
 		}
 		final RouteResultsetNode node = (RouteResultsetNode) attachment;
-		conn.setRunning(true);
 		session.bindConnection(node, conn);
 		session.getSource().getProcessor().getExecutor()
 				.execute(new Runnable() {
@@ -186,6 +196,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		err.read(data);
 		LOGGER.warn("error response from " + conn + " err "
 				+ new String(err.message));
+		conn.setRunning(false);
+		if (this.autocommit) {
+			RouteResultsetNode node = (RouteResultsetNode) conn.getAttachment();
+			session.releaseConnection(node, LOGGER.isDebugEnabled());
+		}
+
 		backendConnError(conn, err);
 	}
 
@@ -197,19 +213,24 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		} catch (UnsupportedEncodingException e) {
 			connectionError(e, conn);
 		}
+		RouteResultsetNode curNode = null;
 		if (executeResponse) {
 			ServerConnection source = session.getSource();
 			conn.setRunning(false);
 			Object attachment = conn.getAttachment();
 			if (attachment instanceof RouteResultsetNode) {
-				RouteResultsetNode node = (RouteResultsetNode) attachment;
+				curNode = (RouteResultsetNode) attachment;
 				conn.recordSql(source.getHost(), source.getSchema(),
-						node.getStatement());
+						curNode.getStatement());
 			} else {
 				LOGGER.warn(new StringBuilder().append("back-end conn: ")
 						.append(conn).append(" has wrong attachment: ")
 						.append(attachment).append(", for front-end conn: ")
 						.append(source));
+			}
+			// release cur finished node and connection
+			if (autocommit) {
+				session.releaseConnection(curNode, LOGGER.isDebugEnabled());
 			}
 			OkPacket ok = new OkPacket();
 			ok.read(data);
@@ -223,6 +244,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			} finally {
 				lock.unlock();
 			}
+
 			if (decrementCountBy(1)) {
 				if (isFail.get()) {
 					notifyError();
@@ -238,12 +260,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 					}
 
 					if (source.isAutocommit()) {
-						if (!autocommit) { // 前端非事务模式，后端事务模式，则需要自动递交后端事务。
-							icHandler.commit();
-						} else {
-							session.releaseConnections();
-							ok.write(source);
-						}
+						session.releaseConnections();
+						ok.write(source);
 					} else {
 						ok.write(source);
 					}
@@ -259,12 +277,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	public void rowEofResponse(byte[] eof, PhysicalConnection conn) {
 		conn.setRunning(false);
 		ServerConnection source = session.getSource();
-		RouteResultsetNode node = null;
+		RouteResultsetNode curNode = null;
 		Object attachment = conn.getAttachment();
 		if (attachment instanceof RouteResultsetNode) {
-			node = (RouteResultsetNode) attachment;
+			curNode = (RouteResultsetNode) attachment;
 			conn.recordSql(source.getHost(), source.getSchema(),
-					node.getStatement());
+					curNode.getStatement());
 		} else {
 			LOGGER.warn(new StringBuilder().append("back-end conn: ")
 					.append(conn).append(" has wrong attachment: ")
@@ -272,16 +290,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 					.append(source));
 		}
 		if (source.isAutocommit()) {
-			if (node != null) {
-				conn = session.removeTarget(node);
-				if (conn != null) {
-					if (isFail.get() || session.closed()) {
-						conn.quit();
-					} else {
-						conn.release();
-					}
-				}
-			}
+			session.releaseConnection(curNode, LOGGER.isDebugEnabled());
 		}
 		if (decrementCountBy(1)) {
 			if (isFail.get()) {

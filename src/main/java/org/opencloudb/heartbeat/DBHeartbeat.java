@@ -5,6 +5,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.opencloudb.statistic.HeartbeatRecorder;
 
 public abstract class DBHeartbeat {
+	public static final int OK_STATUS = 1;
+	public static final int ERROR_STATUS = -1;
+	public static final int TIMEOUT_STATUS = -2;
+	public static final int INIT_STATUS = 0;
 	private static final long DEFAULT_HEARTBEAT_TIMEOUT = 30 * 1000L;
 	private static final int DEFAULT_HEARTBEAT_RETRY = 10;
 	// heartbeat config
@@ -15,7 +19,8 @@ public abstract class DBHeartbeat {
 	protected final AtomicBoolean isChecking = new AtomicBoolean(false);
 	protected int errorCount;
 	protected volatile int status;
-	protected final HeartbeatRecorder recorder= new HeartbeatRecorder();
+	protected final HeartbeatRecorder recorder = new HeartbeatRecorder();
+
 	public int getStatus() {
 		return status;
 	}

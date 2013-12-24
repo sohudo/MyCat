@@ -24,15 +24,9 @@ import org.opencloudb.util.FormatUtil;
  * @author mycat
  */
 public final class RouteResultset {
-	public static final int SUM_FLAG = 1;
-	public static final int MIN_FLAG = 2;
-	public static final int MAX_FLAG = 3;
-	public static final int REWRITE_FIELD = 4;
-
 	private final String statement; // 原始语句
+	private final int sqlType;
 	private RouteResultsetNode[] nodes; // 路由结果节点
-	private int flag; // 结果集的处理标识，比如：合并，相加等。
-
 	private LinkedHashMap<String, Integer> orderByCols;
 	private Map<String, Integer> mergeCols;
 	private String[] groupByCols;
@@ -40,8 +34,19 @@ public final class RouteResultset {
 	// limit output total
 	private int limitSize;
 	private boolean hasAggrColumn;
+	
+	public RouteResultset(String stmt,int sqlType) {
+		this.statement = stmt;
+		this.limitSize = -1;
+		this.sqlType=sqlType;
+	}
+	
 	public boolean needMerge() {
 		return limitSize > 0 || orderByCols != null || groupByCols != null||hasAggrColumn;
+	}
+
+	public int getSqlType() {
+		return sqlType;
 	}
 
 	public boolean isHasAggrColumn() {
@@ -74,10 +79,7 @@ public final class RouteResultset {
 		this.limitStart = limitStart;
 	}
 
-	public RouteResultset(String stmt) {
-		this.statement = stmt;
-		this.limitSize = -1;
-	}
+	
 
 	public void setOrderByCols(LinkedHashMap<String, Integer> orderByCols) {
 		this.orderByCols = orderByCols;
@@ -99,14 +101,7 @@ public final class RouteResultset {
 		this.nodes = nodes;
 	}
 
-	public int getFlag() {
-		return flag;
-	}
-
-	public void setFlag(int flag) {
-		this.flag = flag;
-	}
-
+	
 	/**
 	 * @return -1 if no limit
 	 */

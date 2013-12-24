@@ -27,18 +27,20 @@ import org.opencloudb.route.RouteResultsetNode;
  */
 public class RouteResultsetNodeTest {
 
-    @Test
-    public void testMapKeyValue() {
-        Map<RouteResultsetNode, String> map = new HashMap<RouteResultsetNode, String>();
-        RouteResultsetNode rrn = new RouteResultsetNode("test", "select * from t1 limit 1");
-        RouteResultsetNode rrn2 = new RouteResultsetNode("test", 1, "select * from t2 limit 1");
-        map.put(rrn, rrn.getStatement());
-        map.put(rrn2, rrn2.getStatement());
-        Assert.assertEquals(2, map.size());
-        for (int i = 0; i < 100; i++) {
-            Assert.assertEquals("select * from t1 limit 1", map.get(rrn));
-            Assert.assertEquals("select * from t2 limit 1", map.get(rrn2));
-        }
-    }
+	@Test
+	public void testMapKeyValue() {
+		Map<RouteResultsetNode, String> map = new HashMap<RouteResultsetNode, String>();
+		RouteResultsetNode rrn = new RouteResultsetNode("test", 0,
+				"select * from t1 limit 1");
+		RouteResultsetNode rrn2 = new RouteResultsetNode("test", 0,
+				"select * from t2 limit 1");
+		map.put(rrn, rrn.getStatement());
+		map.put(rrn2, rrn2.getStatement());
+		Assert.assertEquals(2, map.size());
+		for (int i = 0; i < 100; i++) {
+			Assert.assertEquals("select * from t1 limit 1", map.get(rrn));
+			Assert.assertEquals("select * from t2 limit 1", map.get(rrn2));
+		}
+	}
 
 }

@@ -95,7 +95,7 @@ public class TestInsertPerf {
 				+ failedCount.get());
         long sucess=finshiedCount.get()-failedCount.get();
 		System.out.println("used time total:" + usedTime / 1000 + "seconds");
-		System.out.println("tps:" + usedTime * 1.0 / sucess);
+		System.out.println("tps:" + sucess * 1.0 /usedTime );
 	}
 
 }

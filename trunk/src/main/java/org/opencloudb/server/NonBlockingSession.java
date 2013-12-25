@@ -75,10 +75,13 @@ public class NonBlockingSession implements Session {
 	 * temporary supress channel read event ,because front connection is blocked
 	 */
 	public void supressTargetChannelReadEvent() {
-		LOGGER.info("supress backend connection read event ,for front con blocked write "
-				+ source);
+		final boolean isDebug = LOGGER.isDebugEnabled();
 		for (PhysicalConnection con : target.values()) {
 			if (!con.isSuppressReadTemporay()) {
+				if (isDebug) {
+					LOGGER.debug("supress backend connection read event ,for front con blocked write "
+							+ source + " backcon:" + con);
+				}
 				con.setSuppressReadTemporay(true);
 			}
 		}
@@ -89,10 +92,14 @@ public class NonBlockingSession implements Session {
 	 * blocked
 	 */
 	public void unSupressTargetChannelReadEvent() {
-		LOGGER.info("upsupress backend connection read event ,for front con can write more "
-				+ source);
+		final boolean isDebug = LOGGER.isDebugEnabled();
+
 		for (PhysicalConnection con : target.values()) {
 			if (con.isSuppressReadTemporay()) {
+				if (isDebug) {
+					LOGGER.debug("upsupress backend connection read event ,for front con can write more "
+							+ source + " backcon:" + con);
+				}
 				con.setSuppressReadTemporay(false);
 			}
 
@@ -233,16 +240,14 @@ public class NonBlockingSession implements Session {
 		clearConnections(true);
 	}
 
-	public void releaseConnection(RouteResultsetNode rrn,boolean debug) {
-		
+	public void releaseConnection(RouteResultsetNode rrn, boolean debug) {
+
 		PhysicalConnection c = target.remove(rrn);
 		if (c != null) {
-			if(debug)
-			{
-				LOGGER.debug("relase connection "+c);
+			if (debug) {
+				LOGGER.debug("relase connection " + c);
 			}
-			if(c.getAttachment()!=null)
-			{
+			if (c.getAttachment() != null) {
 				c.setAttachment(null);
 			}
 			if (c.isRunning()) {
@@ -264,9 +269,9 @@ public class NonBlockingSession implements Session {
 	}
 
 	public void releaseConnections() {
-		boolean debug=LOGGER.isDebugEnabled();
+		boolean debug = LOGGER.isDebugEnabled();
 		for (RouteResultsetNode rrn : target.keySet()) {
-			releaseConnection(rrn,debug);
+			releaseConnection(rrn, debug);
 		}
 	}
 

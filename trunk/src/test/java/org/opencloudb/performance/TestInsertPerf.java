@@ -85,17 +85,18 @@ public class TestInsertPerf {
 		long start = System.currentTimeMillis();
 		System.out.println("all thread started,waiting finsh...");
 		while (finshiedCount.get() < recordCount) {
-			 long sucess=finshiedCount.get()-failedCount.get();
+			long sucess = finshiedCount.get() - failedCount.get();
 			System.out.println("finished records :" + finshiedCount.get()
-					+ " failed:" + failedCount.get()+ " speed:"+sucess*1000.0/(System.currentTimeMillis()-start));
+					+ " failed:" + failedCount.get() + " speed:" + sucess
+					* 1000.0 / (System.currentTimeMillis() - start));
 			Thread.sleep(1000);
 		}
-		long usedTime = (System.currentTimeMillis() - start);
+		long usedTime = (System.currentTimeMillis() - start) / 1000;
 		System.out.println("finishend:" + finshiedCount.get() + " failed:"
 				+ failedCount.get());
-        long sucess=finshiedCount.get()-failedCount.get();
-		System.out.println("used time total:" + usedTime / 1000 + "seconds");
-		System.out.println("tps:" + sucess * 1.0 /usedTime );
+		long sucess = finshiedCount.get() - failedCount.get();
+		System.out.println("used time total:" + usedTime + "seconds");
+		System.out.println("tps:" + sucess / usedTime);
 	}
 
 }

@@ -48,7 +48,7 @@ public class TestSelectPerf {
 		String password = args[2];
 		threadCount = Integer.parseInt(args[3]);
 		int executetimes = Integer.parseInt(args[4]);
-        long maxId=Integer.parseInt(args[5]); 
+		long maxId = Integer.parseInt(args[5]);
 		System.out.println("concerent threads:" + threadCount);
 		System.out.println("execute sql times:" + executetimes);
 		System.out.println("maxId:" + maxId);
@@ -59,7 +59,7 @@ public class TestSelectPerf {
 				Connection con = getCon(url, user, password);
 				System.out.println("create thread " + i);
 				TravelRecordSelectJob job = new TravelRecordSelectJob(con,
-						maxId,executetimes);
+						maxId, executetimes);
 				Thread thread = new Thread(job);
 				threads.add(thread);
 			} catch (Exception e) {
@@ -68,22 +68,20 @@ public class TestSelectPerf {
 			}
 		}
 
-
 		System.out.println("success create thread count: " + threads.size());
 		for (Thread thread : threads) {
 			thread.start();
 		}
 		long start = System.currentTimeMillis();
 		System.out.println("all thread started,waiting finsh...");
-		boolean notFinished=true;
-		while(notFinished) {
-			notFinished=false;
+		boolean notFinished = true;
+		while (notFinished) {
+			notFinished = false;
 			for (Thread thread : threads) {
-				 if(thread.isAlive())
-				 {
-					 notFinished=true; 
-					 break;
-				 }
+				if (thread.isAlive()) {
+					notFinished = true;
+					break;
+				}
 			}
 			long sucess = finshiedCount.get() - failedCount.get();
 			System.out.println("finished records :" + finshiedCount.get()
@@ -96,7 +94,7 @@ public class TestSelectPerf {
 				+ failedCount.get());
 		long sucess = finshiedCount.get() - failedCount.get();
 		System.out.println("used time total:" + usedTime / 1000 + "seconds");
-		System.out.println("tps:" + usedTime * 1.0 / sucess);
+		System.out.println("tps:" + sucess * 1.0 / usedTime);
 	}
 }
 

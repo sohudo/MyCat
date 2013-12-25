@@ -61,6 +61,7 @@
 				<directory>src/main/resources</directory>
 				<excludes>
 					<exclude>**/.svn/**</exclude>
+					<exclude>**/**</exclude>
 				</excludes>
 			</resource>
 		</resources>
@@ -152,9 +153,9 @@
 							</platforms>
 							<jvmSettings>
 								<!-- 启动内存配置 -->
-								<initialMemorySize>2G</initialMemorySize>
-								<maxMemorySize>2G</maxMemorySize>
-								<maxStackSize>128m</maxStackSize>
+								<initialMemorySize>2048</initialMemorySize>
+								<maxMemorySize>2048</maxMemorySize>
+								<maxStackSize>128</maxStackSize>
 								<systemProperties>
                   					<systemProperty>MYCAT_HOME=.</systemProperty>
                 				</systemProperties>

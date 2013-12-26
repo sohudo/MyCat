@@ -35,7 +35,7 @@ public final class SystemConfig {
 	public static final int DEFAULT_POOL_SIZE = 128;// 保持后端数据通道的默认最大值
 	public static final long DEFAULT_WAIT_TIMEOUT = 10 * 1000L;
 	public static final long DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000L;
-	//private static final long DEFAULT_IDLE_TIMEOUT = 8 * 3600 * 1000L;
+	// private static final long DEFAULT_IDLE_TIMEOUT = 8 * 3600 * 1000L;
 	private static final long DEFAULT_PROCESSOR_CHECK_PERIOD = 15 * 1000L;
 	private static final long DEFAULT_DATANODE_IDLE_CHECK_PERIOD = 60 * 1000L;
 	private static final long DEFAULT_DATANODE_HEARTBEAT_PERIOD = 10 * 1000L;
@@ -46,6 +46,7 @@ public final class SystemConfig {
 	private static final String DEFAULT_CLUSTER_HEARTBEAT_PASS = "_HEARTBEAT_PASS_";
 	private static final int DEFAULT_PARSER_COMMENT_VERSION = 50148;
 	private static final int DEFAULT_SQL_RECORD_COUNT = 10;
+	private static final int DEFAULT_USE_WR_FLUX_CONTRL = 0;
 
 	private int serverPort;
 	private int managerPort;
@@ -69,6 +70,7 @@ public final class SystemConfig {
 	private int parserCommentVersion;
 	private int sqlRecordCount;
 	private long waitTimeout;
+	private int openWRFluxControl;
 
 	public SystemConfig() {
 		this.serverPort = DEFAULT_PORT;
@@ -92,22 +94,28 @@ public final class SystemConfig {
 		this.txIsolation = Isolations.REPEATED_READ;
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
-		this.waitTimeout=DEFAULT_WAIT_TIMEOUT;
+		this.waitTimeout = DEFAULT_WAIT_TIMEOUT;
+		this.openWRFluxControl = DEFAULT_USE_WR_FLUX_CONTRL;
 	}
 
-	public static String getHomePath()
-    {
-    	String home = System.getProperty(SystemConfig.SYS_HOME);
-    	if(home!=null)
-    	{
-    		if(home.endsWith(File.pathSeparator))
-    		{
-    			home=home.substring(0,home.length()-1);
-    			System.setProperty(SystemConfig.SYS_HOME,home);
-    		}
-    	}
-    	return home;
-    }
+	public int getOpenWRFluxControl() {
+		return openWRFluxControl;
+	}
+
+	public void setOpenWRFluxControl(int openWRFluxControl) {
+		this.openWRFluxControl = openWRFluxControl;
+	}
+
+	public static String getHomePath() {
+		String home = System.getProperty(SystemConfig.SYS_HOME);
+		if (home != null) {
+			if (home.endsWith(File.pathSeparator)) {
+				home = home.substring(0, home.length() - 1);
+				System.setProperty(SystemConfig.SYS_HOME, home);
+			}
+		}
+		return home;
+	}
 
 	public String getCharset() {
 		return charset;

@@ -32,6 +32,8 @@ public final class BufferQueue {
 	private final Condition notFull;
 	private ByteBuffer attachment;
 	private final int total;
+	public static final int NEARLY_FULL = -1;
+	public static final int NEARLY_EMPTY = 1;
 
 	public BufferQueue(int capacity) {
 		this.total = capacity;
@@ -64,17 +66,23 @@ public final class BufferQueue {
 	 * 
 	 * @return
 	 */
-	public boolean isNearlyFull() {
-		return total * 3 / 4 < count;
+	public int isNearlyFullOREmpty() {
+		// System.out.println("queue size "+total+" cur "+count);
+		if (count > (total - 2)) {
+			return NEARLY_FULL;
+		} else if (count < total * 1 / 3) {
+			return NEARLY_EMPTY;
+		}
+		return 0;
 	}
 
 	/**
 	 * 
 	 * @param buffer
-	 * @return if queue is nearlyful
+	 * @return if queue is nearlyful or is nearlyemp
 	 * @throws InterruptedException
 	 */
-	public boolean put(ByteBuffer buffer) throws InterruptedException {
+	public int put(ByteBuffer buffer) throws InterruptedException {
 		final ByteBuffer[] items = this.items;
 		final ReentrantLock lock = this.lock;
 		lock.lockInterruptibly();
@@ -88,7 +96,7 @@ public final class BufferQueue {
 				throw ie;
 			}
 			insert(buffer);
-			return this.isNearlyFull();
+			return this.isNearlyFullOREmpty();
 		} finally {
 			lock.unlock();
 

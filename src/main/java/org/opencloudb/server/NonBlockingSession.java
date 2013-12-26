@@ -83,6 +83,7 @@ public class NonBlockingSession implements Session {
 							+ source + " backcon:" + con);
 				}
 				con.setSuppressReadTemporay(true);
+				((org.opencloudb.net.AbstractConnection) con).disableRead();
 			}
 		}
 	}
@@ -101,6 +102,7 @@ public class NonBlockingSession implements Session {
 							+ source + " backcon:" + con);
 				}
 				con.setSuppressReadTemporay(false);
+				((org.opencloudb.net.AbstractConnection) con).enableRead();
 			}
 
 		}

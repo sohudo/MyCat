@@ -76,6 +76,10 @@ public class KillConnectionHandler implements ResponseHandler {
 
     @Override
     public void okResponse(byte[] ok, PhysicalConnection conn) {
+    	if(LOGGER.isDebugEnabled())
+    	{
+    		LOGGER.debug("kill connection success connection id:"+killee.getThreadId());
+    	}
         conn.release();
         killee.close();
         finished();

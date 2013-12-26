@@ -58,12 +58,16 @@ public class PhysicalDBPool {
 	}
 
 	public PhysicalDatasource findDatasouce(PhysicalConnection exitsCon) {
+
 		for (PhysicalDatasource ds : this.allDs) {
-			if (ds.isMyConnection(exitsCon)) {
-				return ds;
+			if (ds.isReadNode() == exitsCon.isFromSlaveDB()) {
+				if (ds.isMyConnection(exitsCon)) {
+					return ds;
+				}
 			}
 		}
-		LOGGER.warn("can't find connection in pool " + this.hostName+ " con:"+exitsCon);
+		LOGGER.warn("can't find connection in pool " + this.hostName + " con:"
+				+ exitsCon);
 		return null;
 	}
 

@@ -148,7 +148,6 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	public void writeQueueAvailable() {
-		// System.out.println("writeQueueAvailable");
 	}
 
 	public void setHandler(NIOHandler handler) {
@@ -184,7 +183,9 @@ public abstract class AbstractConnection implements NIOConnection {
 		if (got < 0) {
 			// System.out.println("warn EOF of read "+this);
 			// return ;
-			throw new EOFException();
+			throw new EOFException("socket closed " + this);
+		} else if (got == 0) {
+			return;
 		}
 		netInBytes += got;
 		processor.addNetInBytes(got);
@@ -235,8 +236,7 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	@Override
-	public void write(ByteBuffer buffer) {
-
+	public final void write(ByteBuffer buffer) {
 		if (isClosed.get()) {
 			processor.getBufferPool().recycle(buffer);
 			return;
@@ -248,10 +248,18 @@ public abstract class AbstractConnection implements NIOConnection {
 							+ this);
 					return;
 				}
-				boolean writeQueueNearlyFul = writeQueue.put(buffer);
-				if (writeQueueNearlyFul) {
-					this.writeQueueBlocked();
+				int writeQueueStatus = writeQueue.put(buffer);
+				switch (writeQueueStatus) {
+				case BufferQueue.NEARLY_EMPTY: {
+					this.writeQueueAvailable();
+					break;
 				}
+				case BufferQueue.NEARLY_FULL: {
+					this.writeQueueBlocked();
+					break;
+				}
+				}
+
 			} catch (InterruptedException e) {
 				error(ErrorCode.ERR_PUT_WRITE_QUEUE, e);
 				return;
@@ -279,9 +287,6 @@ public abstract class AbstractConnection implements NIOConnection {
 			if ((processKey.interestOps() & SelectionKey.OP_WRITE) == 0
 					&& !write0()) {
 				enableWrite();
-			} else {
-				// notify handle can put data to queue
-				this.writeQueueAvailable();
 			}
 		} finally {
 			lock.unlock();

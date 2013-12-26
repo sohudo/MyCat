@@ -17,6 +17,7 @@ package org.opencloudb.heartbeat;
 
 import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.mysql.SecurityUtil;
+import org.opencloudb.net.ConnectionException;
 import org.opencloudb.net.NIOHandler;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.ErrorPacket;
@@ -29,64 +30,79 @@ import org.opencloudb.net.mysql.Reply323Packet;
  */
 public class MySQLDetectorAuthenticator implements NIOHandler {
 
-    private final MySQLDetector source;
+	private final MySQLDetector source;
 
-    public MySQLDetectorAuthenticator(MySQLDetector source) {
-        this.source = source;
-    }
+	public MySQLDetectorAuthenticator(MySQLDetector source) {
+		this.source = source;
+	}
 
-    @Override
-    public void handle(byte[] data) {
-        MySQLDetector source = this.source;
-        HandshakePacket hsp = source.getHandshake();
-        if (hsp == null) {
-            // 设置握手数据包
-            hsp = new HandshakePacket();
-            hsp.read(data);
-            source.setHandshake(hsp);
+	@Override
+	public void handle(byte[] data) {
+		MySQLDetector source = this.source;
+		switch (data[4]) {
+		case OkPacket.FIELD_COUNT:
+			HandshakePacket packet = source.getHandshake();
+			if (packet == null) {
+				processHandshakePackage(data, source);
+				// 发送认证数据包
+				source.authenticate();
+				return;
+			}
+			source.setHandler(new MySQLDetectorHandler(source));
+			source.setAuthenticated(true);
+			source.heartbeat();// 成功后发起心跳。
+			break;
+		case ErrorPacket.FIELD_COUNT:
+			ErrorPacket err = new ErrorPacket();
+			err.read(data);
+			throw new ConnectionException(err.errno,new String(err.message));
+		case EOFPacket.FIELD_COUNT:
+			auth323(data[3]);
+			break;
+		default:
+			packet = source.getHandshake();
+			if (packet == null) {
+				processHandshakePackage(data, source);
+				// 发送认证数据包
+				source.authenticate();
+				break;
+			}
+			throw new RuntimeException("Unknown packet");
+		}
+	}
 
-            // 设置字符集编码
-            int charsetIndex = (hsp.serverCharsetIndex & 0xff);
-            String charset = CharsetUtil.getCharset(charsetIndex);
-            if (charset != null) {
-                source.setCharsetIndex(charsetIndex);
-            } else {
-                throw new RuntimeException("Unknown charsetIndex:" + charsetIndex);
-            }
+	private void processHandshakePackage(byte[] data, MySQLDetector source) {
+		HandshakePacket hsp;
+		// 设置握手数据包
+		hsp = new HandshakePacket();
+		hsp.read(data);
+		source.setHandshake(hsp);
 
-            // 发送认证数据包
-            source.authenticate();
-        } else {
-            switch (data[4]) {
-            case OkPacket.FIELD_COUNT:
-                source.setHandler(new MySQLDetectorHandler(source));
-                source.setAuthenticated(true);
-                source.heartbeat();// 成功后发起心跳。
-                break;
-            case ErrorPacket.FIELD_COUNT:
-                ErrorPacket err = new ErrorPacket();
-                err.read(data);
-                throw new RuntimeException(new String(err.message));
-            case EOFPacket.FIELD_COUNT:
-                auth323(data[3], hsp.seed);
-                break;
-            default:
-                throw new RuntimeException("Unknown packet");
-            }
-        }
-    }
+		// 设置字符集编码
+		int charsetIndex = (hsp.serverCharsetIndex & 0xff);
+		String charset = CharsetUtil.getCharset(charsetIndex);
+		if (charset != null) {
+			source.setCharsetIndex(charsetIndex);
+		} else {
+			throw new RuntimeException("Unknown charsetIndex:" + charsetIndex);
+		}
+	}
 
-    /**
-     * 发送323响应认证数据包
-     */
-    private void auth323(byte packetId, byte[] seed) {
-        Reply323Packet r323 = new Reply323Packet();
-        r323.packetId = ++packetId;
-        String pass = source.getPassword();
-        if (pass != null && pass.length() > 0) {
-            r323.seed = SecurityUtil.scramble323(pass, new String(seed)).getBytes();
-        }
-        r323.write(source);
-    }
+	/**
+	 * 发送323响应认证数据包
+	 */
+	private void auth323(byte packetId) {
+		// 发送323响应认证数据包
+		Reply323Packet r323 = new Reply323Packet();
+		r323.packetId = ++packetId;
+		String pass = source.getPassword();
+		if (pass != null && pass.length() > 0) {
+			byte[] seed = source.getHandshake().seed;
+			r323.seed = SecurityUtil.scramble323(pass, new String(seed))
+					.getBytes();
+		}
+		r323.write(source);
+	}
+
 
 }

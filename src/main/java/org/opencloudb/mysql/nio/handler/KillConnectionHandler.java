@@ -34,94 +34,100 @@ import org.opencloudb.server.NonBlockingSession;
  * @author mycat
  */
 public class KillConnectionHandler implements ResponseHandler {
-    private static final Logger LOGGER = Logger.getLogger(KillConnectionHandler.class);
+	private static final Logger LOGGER = Logger
+			.getLogger(KillConnectionHandler.class);
 
-    private final PhysicalConnection killee;
-    private final NonBlockingSession session;
-    private final Runnable finishHook;
-    private final AtomicInteger counter;
+	private final PhysicalConnection killee;
+	private final NonBlockingSession session;
+	private final Runnable finishHook;
+	private final AtomicInteger counter;
 
-    public KillConnectionHandler(PhysicalConnection killee, NonBlockingSession session, Runnable finishHook,
-            AtomicInteger counter) {
-        this.killee = killee;
-        this.session = session;
-        this.finishHook = finishHook;
-        this.counter = counter;
-    }
+	public KillConnectionHandler(PhysicalConnection killee,
+			NonBlockingSession session, Runnable finishHook,
+			AtomicInteger counter) {
+		this.killee = killee;
+		this.session = session;
+		this.finishHook = finishHook;
+		this.counter = counter;
+	}
 
-    @Override
-    public void connectionAcquired(PhysicalConnection conn) {
-        conn.setResponseHandler(this);
-        CommandPacket packet = new CommandPacket();
-        packet.packetId = 0;
-        packet.command = MySQLPacket.COM_QUERY;
-        packet.arg = new StringBuilder("KILL ").append(killee.getThreadId()).toString().getBytes();
-        packet.write((BackendConnection)conn);
-    }
+	@Override
+	public void connectionAcquired(PhysicalConnection conn) {
+		conn.setResponseHandler(this);
+		CommandPacket packet = new CommandPacket();
+		packet.packetId = 0;
+		packet.command = MySQLPacket.COM_QUERY;
+		packet.arg = new StringBuilder("KILL ").append(killee.getThreadId())
+				.toString().getBytes();
+		packet.write((BackendConnection) conn);
+	}
 
-    private void finished() {
-        if (counter.decrementAndGet() <= 0) {
-            finishHook.run();
-        }
-    }
+	private void finished() {
+		if (counter.decrementAndGet() <= 0) {
+			finishHook.run();
+		}
+	}
 
-    @Override
-    public void connectionError(Throwable e, PhysicalConnection conn) {
-        if (conn != null) {
-            conn.close();
-        }
-        killee.close();
-        finished();
-    }
+	@Override
+	public void connectionError(Throwable e, PhysicalConnection conn) {
+		if (conn != null) {
+			conn.close();
+		}
+		killee.close();
+		finished();
+	}
 
-    @Override
-    public void okResponse(byte[] ok, PhysicalConnection conn) {
-    	if(LOGGER.isDebugEnabled())
-    	{
-    		LOGGER.debug("kill connection success connection id:"+killee.getThreadId());
-    	}
-        conn.release();
-        killee.close();
-        finished();
-    }
+	@Override
+	public void okResponse(byte[] ok, PhysicalConnection conn) {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("kill connection success connection id:"
+					+ killee.getThreadId());
+		}
+		conn.release();
+		killee.close();
+		finished();
+	}
 
-    @Override
-    public void rowEofResponse(byte[] eof, PhysicalConnection conn) {
-        LOGGER.error(new StringBuilder().append("unexpected packet for ").append(conn).append(" bound by ")
-                .append(session.getSource()).append(": field's eof").toString());
-        conn.quit();
-        killee.close();
-        finished();
-    }
+	@Override
+	public void rowEofResponse(byte[] eof, PhysicalConnection conn) {
+		LOGGER.error(new StringBuilder().append("unexpected packet for ")
+				.append(conn).append(" bound by ").append(session.getSource())
+				.append(": field's eof").toString());
+		conn.quit();
+		killee.close();
+		finished();
+	}
 
-    @Override
-    public void errorResponse(byte[] data, PhysicalConnection conn) {
-        ErrorPacket err = new ErrorPacket();
-        err.read(data);
-        String msg = null;
-        try {
-            msg = new String(err.message, conn.getCharset());
-        } catch (UnsupportedEncodingException e) {
-            msg = new String(err.message);
-        }
-        LOGGER.warn("kill backend connection " + killee + " failed: " + msg);
-        conn.release();
-        killee.close();
-        finished();
-    }
+	@Override
+	public void errorResponse(byte[] data, PhysicalConnection conn) {
+		ErrorPacket err = new ErrorPacket();
+		err.read(data);
+		String msg = null;
+		try {
+			msg = new String(err.message, conn.getCharset());
+		} catch (UnsupportedEncodingException e) {
+			msg = new String(err.message);
+		}
+		LOGGER.warn("kill backend connection " + killee + " failed: " + msg
+				+ " con:" + conn);
+		conn.release();
+		killee.close();
+		finished();
+	}
 
-    @Override
-    public void fieldEofResponse(byte[] header, List<byte[]> fields, byte[] eof, PhysicalConnection conn) {
-    }
+	@Override
+	public void fieldEofResponse(byte[] header, List<byte[]> fields,
+			byte[] eof, PhysicalConnection conn) {
+	}
 
-    @Override
-    public void rowResponse(byte[] row, PhysicalConnection conn) {
-    }
+	@Override
+	public void rowResponse(byte[] row, PhysicalConnection conn) {
+	}
 
 	@Override
 	public void writeQueueAvailable() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }

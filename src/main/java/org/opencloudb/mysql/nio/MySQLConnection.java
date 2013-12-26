@@ -502,7 +502,7 @@ public class MySQLConnection extends BackendConnection implements
 
 	@Override
 	public void error(int errCode, Throwable t) {
-		LOGGER.warn(toString() + " err " + t);
+		LOGGER.warn(toString() + " error code: "+errCode ,t);
 		switch (errCode) {
 		case ErrorCode.ERR_HANDLE_DATA:
 			// handle error ..

@@ -37,7 +37,7 @@ public class ServerConnectionFactory extends FrontendConnectionFactory {
         // c.setPrepareHandler(new ServerPrepareHandler(c)); TODO prepare
         c.setTxIsolation(sys.getTxIsolation());
         //c.setSession(new BlockingSession(c));
-        c.setSession2(new NonBlockingSession(c));
+        c.setSession2(new NonBlockingSession(c,sys.getOpenWRFluxControl()));
         return c;
     }
 

@@ -63,18 +63,24 @@ public class NonBlockingSession implements Session {
 	private volatile MultiNodeQueryHandler multiNodeHandler;
 	private volatile CommitNodeHandler commitHandler;
 	private volatile RollbackNodeHandler rollbackHandler;
+	private boolean openWRFluxContrl=false;
 
-	public NonBlockingSession(ServerConnection source) {
+	public NonBlockingSession(ServerConnection source,int openWRFluxContrl) {
 		this.source = source;
 		this.target = new ConcurrentHashMap<RouteResultsetNode, PhysicalConnection>(
 				2, 1);
 		this.terminating = new AtomicBoolean(false);
+		this.openWRFluxContrl=(openWRFluxContrl==1);
 	}
 
 	/**
 	 * temporary supress channel read event ,because front connection is blocked
 	 */
 	public void supressTargetChannelReadEvent() {
+		if(!openWRFluxContrl)
+		{
+			return;
+		}
 		final boolean isDebug = LOGGER.isDebugEnabled();
 		for (PhysicalConnection con : target.values()) {
 			if (!con.isSuppressReadTemporay()) {
@@ -93,6 +99,10 @@ public class NonBlockingSession implements Session {
 	 * blocked
 	 */
 	public void unSupressTargetChannelReadEvent() {
+		if(!openWRFluxContrl)
+		{
+			return;
+		}
 		final boolean isDebug = LOGGER.isDebugEnabled();
 
 		for (PhysicalConnection con : target.values()) {

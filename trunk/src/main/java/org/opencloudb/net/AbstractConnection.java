@@ -159,7 +159,13 @@ public abstract class AbstractConnection implements NIOConnection {
 		try {
 			handler.handle(data);
 		} catch (Throwable e) {
-			error(ErrorCode.ERR_HANDLE_DATA, e);
+			if (e instanceof ConnectionException) {
+				close();
+				error(ErrorCode.ERR_CONNECT_SOCKET, e);
+			} else {
+				error(ErrorCode.ERR_HANDLE_DATA, e);
+			}
+
 		}
 	}
 

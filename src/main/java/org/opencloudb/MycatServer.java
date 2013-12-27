@@ -52,7 +52,6 @@ public class MycatServer {
 	private final Timer timer;
 	private final NameableExecutor managerExecutor;
 	private final NameableExecutor timerExecutor;
-	private final NameableExecutor initExecutor;
 	private final SQLRecorder sqlRecorder;
 	private final AtomicBoolean isOnline;
 	private final long startupTime;
@@ -65,8 +64,6 @@ public class MycatServer {
 		this.config = new MycatConfig();
 		SystemConfig system = config.getSystem();
 		this.timer = new Timer(NAME + "Timer", true);
-		this.initExecutor = ExecutorUtil.create("InitExecutor",
-				system.getInitExecutor());
 		this.timerExecutor = ExecutorUtil.create("TimerExecutor",
 				system.getTimerExecutor());
 		this.managerExecutor = ExecutorUtil.create("ManagerExecutor",
@@ -94,6 +91,7 @@ public class MycatServer {
 		LOGGER.info("===============================================");
 		LOGGER.info(NAME + " is ready to startup ...");
 		SystemConfig system = config.getSystem();
+		LOGGER.info("sysconfig params:" + system.toString());
 		timer.schedule(updateTime(), 0L, TIME_UPDATE_PERIOD);
 
 		// startup processors
@@ -170,9 +168,6 @@ public class MycatServer {
 		return timerExecutor;
 	}
 
-	public NameableExecutor getInitExecutor() {
-		return initExecutor;
-	}
 
 	public SQLRecorder getSqlRecorder() {
 		return sqlRecorder;

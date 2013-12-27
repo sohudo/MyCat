@@ -30,13 +30,32 @@ public class ByteUtil {
 		return 0;
 	}
 
+	public static byte[] compareNumberArray2(byte[] b1, byte[] b2, int order) {
+		if (b1.length <= 0 && b2.length > 0) {
+			return b2;
+		}
+		if (b1.length > 0 && b2.length <= 0) {
+			return b1;
+		}
+		int len = b1.length > b2.length ? b1.length : b2.length;
+		for (int i = 0; i < len; i++) {
+			if (b1[i] != b2[i])
+				if (order == 1)
+					return ((b1[i] & 0xff) - (b2[i] & 0xff)) > 0 ? b1 : b2;
+				else
+					return ((b1[i] & 0xff) - (b2[i] & 0xff)) > 0 ? b2 : b1;
+		}
+
+		return b1;
+	}
+
 	public static byte[] getBytes(short data) {
 		byte[] bytes = new byte[2];
 		bytes[0] = (byte) (data & 0xff);
 		bytes[1] = (byte) ((data & 0xff00) >> 8);
 		return bytes;
 	}
-
+	
 	public static byte[] getBytes(char data) {
 		byte[] bytes = new byte[2];
 		bytes[0] = (byte) (data);

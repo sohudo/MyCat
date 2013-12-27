@@ -61,7 +61,8 @@ public class RowDataPacketGrouper {
 	}
 
 	private byte[] mertFields(byte[] bs, byte[] bs2, int colType, int mergeType) {
-		//System.out.println("mergeType:"+ mergeType+" colType "+colType+ " field:"+Arrays.toString(bs)+ " ->  "+Arrays.toString(bs2));
+		// System.out.println("mergeType:"+ mergeType+" colType "+colType+
+		// " field:"+Arrays.toString(bs)+ " ->  "+Arrays.toString(bs2));
 		switch (mergeType) {
 		case MergeCol.MERGE_SUM:
 		case MergeCol.MERGE_COUNT: {
@@ -71,14 +72,14 @@ public class RowDataPacketGrouper {
 			return LongUtil.toBytes(total);
 		}
 		case MergeCol.MERGE_MAX: {
-			int compare = ByteUtil.compareNumberArray(bs, bs2);
-			return (compare > 0) ? bs : bs2;
-
+			// int compare = ByteUtil.compareNumberArray(bs, bs2);
+			// return (compare > 0) ? bs : bs2;
+			return ByteUtil.compareNumberArray2(bs, bs2, 1);
 		}
 		case MergeCol.MERGE_MIN: {
-			int compare = ByteUtil.compareNumberArray(bs, bs2);
-			return (compare > 0) ? bs2 : bs;
-
+			// int compare = ByteUtil.compareNumberArray(bs, bs2);
+			// return (compare > 0) ? bs2 : bs;
+			return ByteUtil.compareNumberArray2(bs, bs2, 2);
 		}
 		default:
 			return null;

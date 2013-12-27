@@ -18,10 +18,12 @@ package org.opencloudb.manager;
 import org.apache.log4j.Logger;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.handler.ClearHandler;
+import org.opencloudb.handler.ConfFileHandler;
 import org.opencloudb.handler.ReloadHandler;
 import org.opencloudb.handler.RollbackHandler;
 import org.opencloudb.handler.SelectHandler;
 import org.opencloudb.handler.ShowHandler;
+import org.opencloudb.handler.ShowServerLog;
 import org.opencloudb.handler.StopHandler;
 import org.opencloudb.handler.SwitchHandler;
 import org.opencloudb.net.handler.FrontendQueryHandler;
@@ -84,6 +86,12 @@ public class ManagerQueryHandler implements FrontendQueryHandler {
         case ManagerParse.CLEAR:
             ClearHandler.handle(sql, c, rs >>> 8);
             break;
+        case ManagerParse.CONFIGFILE:
+           ConfFileHandler.handle(sql, c);
+            break;
+        case ManagerParse.LOGFILE:
+            ShowServerLog.handle(sql, c);
+             break;
         default:
             c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
         }

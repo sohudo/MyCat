@@ -12,6 +12,8 @@
 
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
+		<!--  maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format>
+		<buildNumber>${maven.build.timestamp}</buildNumber -->
 	</properties>
 
 	<dependencies>
@@ -30,8 +32,8 @@
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>5.1.27</version>
-			<scope>test</scope>	
-				
+			<scope>test</scope>
+
 		</dependency>
 
 		<dependency>
@@ -44,7 +46,7 @@
 			<groupId>org.codehaus.jsr166-mirror</groupId>
 			<artifactId>jsr166y</artifactId>
 			<version>1.7.0</version>
-			<scope>test</scope>			
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -56,6 +58,7 @@
 	</issueManagement>
 
 	<build>
+		<!--  finalName>${artifactId}-${version}-${buildNumber}</finalName -->
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
@@ -106,8 +109,18 @@
 				<configuration>
 					<excludes>
 						<exclude>**/.svn/**</exclude>
-					</excludes>
+					</excludes>					
 				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>test-jar</goal>
+						</goals>
+						<!--  configuration>
+							<finalName>${project.build.finalName}-${buildNumber}</finalName>
+						</configuration -->
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -128,20 +141,21 @@
 					</additionalConfig>
 				</configuration>
 			</plugin>
-			
-			<!--  -->
+
+			<!-- -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>appassembler-maven-plugin</artifactId>
-				<version>1.4</version>
+				<version>1.7</version>
 				<configuration>
 					<configurationDirectory>conf</configurationDirectory>
 					<includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
 					<repositoryLayout>flat</repositoryLayout>
 					<useWildcardClassPath>true</useWildcardClassPath>
-
+					
 					<daemons>
 						<daemon>
+							
 							<id>mycat</id>
 							<mainClass>org.opencloudb.MycatStartup</mainClass>
 							<commandLineArguments>
@@ -156,10 +170,11 @@
 								<maxMemorySize>2048</maxMemorySize>
 								<maxStackSize>128</maxStackSize>
 								<systemProperties>
-                  					<systemProperty>MYCAT_HOME=.</systemProperty>
-                				</systemProperties>
+									<systemProperty>MYCAT_HOME=.</systemProperty>
+								</systemProperties>
 								<extraArguments>
 									<extraArgument>-server </extraArgument>
+									<extraArgument>-XX:MaxPermSize=64M</extraArgument>
 									<extraArgument>-XX:+AggressiveOpts</extraArgument>
 									<extraArgument>-XX:MaxDirectMemorySize=2G</extraArgument>
 									<!-- 远程JMX -->
@@ -196,7 +211,7 @@
 											<value>logs/wrapper.log</value>
 										</property>
 									</configuration>
-								
+
 								</generatorConfiguration>
 							</generatorConfigurations>
 						</daemon>
@@ -214,7 +229,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
+				<configuration>					
 					<descriptor>src/main/assembly/assembly.xml</descriptor>
 				</configuration>
 				<executions>
@@ -227,7 +242,48 @@
 					</execution>
 				</executions>
 			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+				<version>1.2</version>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<goals>
+							<goal>create</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<format>{0,date,yyyyMMdd}-{1}</format>
+          			<items>
+            			<item>timestamp</item>
+            			<item>scmVersion</item>
+          			</items>
+					<urlScm>scm:svn:http://code.taobao.org/svn/openclouddb/trunk</urlScm>
+					<doCheck>false</doCheck>
+					<doUpdate>false</doUpdate>
+					<useLastCommittedRevision>true</useLastCommittedRevision>
+					<providerImplementations>
+						<svn>javasvn</svn>
+					</providerImplementations>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>com.google.code.maven-scm-provider-svnjava</groupId>
+						<artifactId>maven-scm-provider-svnjava</artifactId>
+						<version>2.0.6</version>
+					</dependency>
+					<dependency>
+						<groupId>org.tmatesoft.svnkit</groupId>
+						<artifactId>svnkit</artifactId>
+						<version>1.7.8</version>
+					</dependency>
+				</dependencies>
+			</plugin>
 		</plugins>
 	</build>
+	
 
 </project>

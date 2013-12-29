@@ -27,6 +27,7 @@
 		<fileSet>
 			<directory>src/main/assembly/bin</directory>
 			<outputDirectory>bin</outputDirectory>
+			<fileMode>0755</fileMode>
 		</fileSet>
 		<fileSet>
 			<directory>doc</directory>
@@ -35,6 +36,7 @@
 		<fileSet>
 			<directory>src/main/assembly/bin</directory>
 			<outputDirectory>bin</outputDirectory>
+			<fileMode>0755</fileMode>
 		</fileSet>
 		<fileSet>
 			<directory>src/main/assembly/conf</directory>

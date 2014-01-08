@@ -62,8 +62,9 @@ import com.akiban.sql.unparser.NodeToString;
  * @author mycat
  * @author mycat
  */
-public final class ServerRouter {
-	private static final Logger LOGGER = Logger.getLogger(ServerRouter.class);
+public final class ServerRouterUtil {
+	private static final Logger LOGGER = Logger
+			.getLogger(ServerRouterUtil.class);
 
 	public static RouteResultset route(SchemaConfig schema, int sqlType,
 			String stmt, String charset, Object info)

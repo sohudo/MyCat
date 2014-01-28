@@ -21,7 +21,9 @@ public class TestUpdatePerf extends AbstractMultiTreadBatchTester {
 		if (args.length > 5) {
 			repeats = Integer.parseInt(args[5]);
 		}
-		new TestUpdatePerf(repeats).run(args);
+		for (int i = 0; i < repeats; i++) {
+			new TestUpdatePerf(repeats).run(args);
+		}
 
 	}
 

@@ -127,11 +127,13 @@ public class PhysicalDBPool {
 		case WRITE_RANDOM_NODE: {
 			
 			int index = Math.abs(wnrandom.nextInt()) % writeSources.length;
+			PhysicalDatasource result=writeSources[index];
 			if(LOGGER.isDebugEnabled())
 			{
-				LOGGER.debug("selected writehost ,index is "+index);
+				LOGGER.debug("select write source " + result.getName()
+						+ " for dataHost:" + this.getHostName());
 			}
-			return writeSources[index];
+			return result;
 		}
 		default: {
 			throw new java.lang.IllegalArgumentException("writeType is "

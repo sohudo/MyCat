@@ -27,12 +27,13 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
 
+import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.util.TimeUtil;
 
 /**
  * @author mycat
  */
-public abstract class BackendConnection extends AbstractConnection {
+public abstract class BackendAIOConnection extends AbstractConnection implements BackendConnection{
 
 	protected long id;
 	protected String host;
@@ -43,7 +44,7 @@ public abstract class BackendConnection extends AbstractConnection {
 	// supress socket read event temporary ,because client
 	protected volatile boolean suppressReadTemporay;
 
-	public BackendConnection(AsynchronousSocketChannel channel) {
+	public BackendAIOConnection(AsynchronousSocketChannel channel) {
 		super(channel);
 	}
 

@@ -29,7 +29,7 @@ import org.opencloudb.route.RouteParseInf;
 
 import com.foundationdb.sql.parser.QueryTreeNode;
 
-public class InsertParsInf extends RouteParseInf{
+public class InsertParseInf extends RouteParseInf{
 	/**
 	 * insert table's name
 	 */

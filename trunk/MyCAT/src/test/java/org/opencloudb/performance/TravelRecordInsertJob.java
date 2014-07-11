@@ -74,6 +74,7 @@ public class TravelRecordInsertJob implements Runnable {
 
 		}
 		ps.executeBatch();
+		con.commit();
 		ps.clearBatch();
 		ps.close();
 		return list.size();

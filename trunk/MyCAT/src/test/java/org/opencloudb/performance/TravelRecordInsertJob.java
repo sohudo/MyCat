@@ -126,7 +126,7 @@ public class TravelRecordInsertJob implements Runnable {
 				try {
 					if (con == null || con.isClosed()) {
 						con = conPool.getConnection();
-						con.setAutoCommit(true);
+						con.setAutoCommit(false);
 					}
 
 					insert(con, batch);

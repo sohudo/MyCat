@@ -71,9 +71,11 @@ public class TravelRecordInsertJob implements Runnable {
 			ps.setString(4, (String) map.get("fee"));
 			ps.setString(5, (String) map.get("days"));
 			ps.addBatch();
-			
+
 		}
 		ps.executeBatch();
+		ps.clearBatch();
+		ps.close();
 		return list.size();
 	}
 
@@ -98,7 +100,7 @@ public class TravelRecordInsertJob implements Runnable {
 			m.put("days", i % 10000 + "");
 			list.add(m);
 		}
-		//System.out.println("finsihed :" + finsihed + "-" + end);
+		// System.out.println("finsihed :" + finsihed + "-" + end);
 		finsihed += list.size();
 		return list;
 	}
